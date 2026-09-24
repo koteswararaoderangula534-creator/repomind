@@ -1,0 +1,248 @@
+/* ==========================================================================
+   RepoMind Code & Diff Viewer Styles
+   High-density, IDE-grade diff viewer and code inspector
+   ========================================================================== */
+
+.code-viewer-container {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  position: relative;
+}
+
+.code-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.code-line {
+  display: flex;
+  width: 100%;
+}
+
+.code-gutter {
+  width: 44px;
+  min-width: 44px;
+  padding: 0 8px;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+  font-size: 11px;
+  border-right: 1px solid var(--border-subtle);
+  background-color: var(--bg-secondary);
+}
+
+.code-content {
+  padding: 0 12px;
+  flex: 1;
+  white-space: pre;
+  tab-size: 4;
+  color: var(--text-primary);
+  overflow-x: auto;
+}
+
+.code-line.highlighted {
+  background-color: rgba(56, 139, 253, 0.12);
+}
+
+.code-line.highlighted .code-gutter {
+  color: var(--brand-accent-text);
+  font-weight: 600;
+  border-right-color: var(--brand-accent);
+}
+
+/* ---------------- Professional Diff Viewer ---------------- */
+.diff-container {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.diff-header {
+  padding: 8px 14px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+}
+
+.diff-file-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.diff-stats-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.stat-add {
+  color: var(--diff-add-line);
+  font-weight: 600;
+}
+
+.stat-del {
+  color: var(--diff-del-line);
+  font-weight: 600;
+}
+
+/* "Why This Changed" Banner */
+.diff-why-banner {
+  padding: 10px 14px;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.diff-why-tag {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--brand-accent-text);
+  background-color: var(--brand-accent-subtle);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.diff-why-text {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Unified Diff View */
+.diff-unified-view {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.diff-line {
+  display: flex;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.diff-line:hover {
+  filter: brightness(1.05);
+}
+
+.diff-line-num {
+  width: 42px;
+  min-width: 42px;
+  padding: 0 6px;
+  text-align: right;
+  color: var(--text-muted);
+  user-select: none;
+  font-size: 11px;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.diff-line-prefix {
+  width: 22px;
+  min-width: 22px;
+  text-align: center;
+  user-select: none;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.diff-line-text {
+  padding-right: 16px;
+  white-space: pre;
+  flex: 1;
+  tab-size: 4;
+}
+
+/* Addition Line */
+.diff-line.addition {
+  background-color: var(--diff-add-bg);
+  color: var(--diff-add-line);
+}
+.diff-line.addition .diff-line-num {
+  background-color: var(--diff-add-gutter);
+  color: var(--diff-add-line);
+}
+.diff-line.addition .diff-line-prefix {
+  color: var(--diff-add-line);
+}
+
+/* Deletion Line */
+.diff-line.deletion {
+  background-color: var(--diff-del-bg);
+  color: var(--diff-del-line);
+}
+.diff-line.deletion .diff-line-num {
+  background-color: var(--diff-del-gutter);
+  color: var(--diff-del-line);
+}
+.diff-line.deletion .diff-line-prefix {
+  color: var(--diff-del-line);
+}
+
+/* Split (Side-by-Side) Diff View */
+.diff-split-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.diff-split-column {
+  overflow-x: auto;
+}
+
+.diff-split-column:first-child {
+  border-right: 1px solid var(--border-default);
+}
+
+.diff-split-header {
+  padding: 6px 12px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Code Syntax Highlighting Classes (Subtle, IDE-accurate) */
+.tok-kw { color: #ff7b72; font-weight: 500; }     /* def, return, if, import */
+.tok-fn { color: #d2a8ff; font-weight: 600; }     /* function names */
+.tok-str { color: #a5d6ff; }                      /* strings */
+.tok-cmt { color: #8b949e; font-style: italic; }  /* comments */
+.tok-num { color: #79c0ff; }                      /* numbers */
+.tok-cls { color: #ffa657; font-weight: 600; }    /* class names */
+.tok-var { color: #f0f6fc; }                      /* variables */
+.tok-op  { color: #79c0ff; }                      /* operators */
+.tok-dec { color: #d2a8ff; }                      /* @decorators */

@@ -1,0 +1,21 @@
+{
+  "name": "repomind",
+  "version": "1.0.0",
+  "description": "RepoMind — Autonomous Codebase Understanding & Safe Refactoring Agent",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "python server.py",
+    "start": "python server.py"
+  },
+  "keywords": [
+    "repomind",
+    "developer-tools",
+    "refactoring",
+    "codebase-intelligence",
+    "ast-analysis",
+    "verification"
+  ],
+  "author": "RepoMind Engineering Team",
+  "license": "Apache-2.0"
+}
