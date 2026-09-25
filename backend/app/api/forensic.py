@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from app.core.store import repo_store
 from app.models.common import success_response, error_response
+from app.models.forensic import UnverifiedItem
 from app.services.forensic_service import forensic_service
 
 router = APIRouter(prefix="/repositories", tags=["Forensic Analysis"])
@@ -76,6 +77,25 @@ def trigger_forensic_analysis(repo_id: str, payload: Optional[ForensicTriggerReq
         )
 
     supabase_url = payload.supabase_url if payload else None
+
+    # For the demonstration repository, preserve the rich forensic attendance scenario
+    if repo_id == "repo-student-mgmt":
+        if not session.forensic_report:
+            from app.main import populate_demo_repository
+            populate_demo_repository()
+            session = repo_store.get_session(repo_id)
+
+        if session and session.forensic_report:
+            if supabase_url:
+                session.forensic_report.unverified_items = [
+                    UnverifiedItem(
+                        target=f"Supabase External Project ({supabase_url})",
+                        reason="Static offline analysis cannot authenticate against external Supabase REST/Postgres endpoint without API credentials.",
+                        classification="[UNVERIFIED]",
+                        recommendation="Provide valid SUPABASE_SERVICE_ROLE_KEY to enable remote schema and RLS policy verification.",
+                    )
+                ]
+            return success_response(session.forensic_report.model_dump())
 
     try:
         report = forensic_service.analyze_workspace(

@@ -78,7 +78,12 @@ class RepositoryService:
         """Executes safe git clone with depth 1."""
         cmd = ["git", "clone", "--depth", "1", "--single-branch", "-b", branch, url, str(target_dir)]
         logger.info(f"Running git clone: {' '.join(cmd)}")
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
+        git_env = {
+            **os.environ,
+            "GIT_TERMINAL_PROMPT": "0",
+            "GCM_INTERACTIVE": "never",
+        }
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15, env=git_env)
         if res.returncode != 0:
             err = res.stderr.decode("utf-8", errors="ignore").strip()
             raise RuntimeError(f"git clone failed with code {res.returncode}: {err}")
@@ -86,12 +91,18 @@ class RepositoryService:
     def _get_git_commit(self, repo_dir: Path) -> str:
         """Retrieves short commit SHA."""
         try:
+            git_env = {
+                **os.environ,
+                "GIT_TERMINAL_PROMPT": "0",
+                "GCM_INTERACTIVE": "never",
+            }
             res = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
                 cwd=str(repo_dir),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=5,
+                env=git_env,
             )
             if res.returncode == 0:
                 return res.stdout.decode().strip()

@@ -696,7 +696,10 @@ export const VERIFICATION_DATA = {
     "tests/test_orders.py::test_async_notification_enqueued PASSED [ 17%]",
     "tests/test_auth.py::test_jwt_login_valid_credentials PASSED [ 38%]",
     "tests/test_auth.py::test_jwt_login_invalid_password PASSED [ 42%]",
-    "tests/test_billing.py::test_stripe_charge_amount PASSED [ 85%]",
+    "tests/test_billing.py::test_stripe_charge_amount PASSED [ 85%]"
+  ]
+};
+
 export const FORENSIC_REPORT_DATA = {
   repo_id: "repo-student-mgmt",
   repo_name: "university-sys/student-management-system",

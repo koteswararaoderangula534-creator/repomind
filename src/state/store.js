@@ -18,7 +18,7 @@ import { apiService } from "../services/api.js";
 
 export const RECENT_REPOSITORIES = [
   {
-    id: "repo-1",
+    id: "repo-student-mgmt",
     name: "university-sys/student-management-system",
     language: "Python 3.11 / FastAPI",
     lastAnalyzed: "2 hours ago",

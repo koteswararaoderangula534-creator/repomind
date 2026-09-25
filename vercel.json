@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/((?!styles/|src/|backend/|assets/|favicon.ico).*)", "destination": "/index.html" }
+  ]
+}

@@ -31,6 +31,22 @@ def analyze_repository(payload: AnalyzeRequest):
     start_time = time.time()
     logger.info(f"Initiating repository analysis for: {payload.url} (branch: {payload.branch})")
 
+    # Fast-path for the demonstration repository to avoid hanging git clones on mock URLs
+    normalized_url = (payload.url or "").strip().rstrip("/").lower()
+    if (
+        "university-sys/student-management-system" in normalized_url
+        or normalized_url == "demo"
+        or "repo-student-mgmt" in normalized_url
+    ):
+        demo_session = repo_store.get_session("repo-student-mgmt")
+        if not demo_session:
+            from app.main import populate_demo_repository
+            populate_demo_repository()
+            demo_session = repo_store.get_session("repo-student-mgmt")
+        if demo_session:
+            logger.info("Serving pre-populated demonstration repository session (repo-student-mgmt).")
+            return success_response(data=demo_session.overview.model_dump())
+
     try:
         # 1. Fetch repository into an isolated workspace
         ws, meta = repository_service.clone_or_fetch(payload.url, payload.branch)

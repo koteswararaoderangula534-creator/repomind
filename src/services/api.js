@@ -16,7 +16,17 @@ import {
   FORENSIC_REPORT_DATA
 } from "../data/mockData.js";
 
-const BACKEND_BASE_URL = "http://localhost:8000/api";
+const isHttps = typeof window !== "undefined" && window.location && window.location.protocol === "https:";
+const isLocalhost = typeof window !== "undefined" && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+// On local dev: connects to FastAPI backend (http://localhost:8000/api).
+// On production HTTPS (e.g. Vercel): uses relative /api or custom window.REPOMIND_API_URL,
+// avoiding mixed-content block while gracefully falling back to offline verified mock data.
+const BACKEND_BASE_URL = (typeof window !== "undefined" && window.REPOMIND_API_URL)
+  ? window.REPOMIND_API_URL
+  : (isHttps && !isLocalhost)
+    ? "/api"
+    : "http://localhost:8000/api";
 
 class ApiService {
   constructor() {
