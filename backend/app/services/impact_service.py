@@ -10,6 +10,7 @@ from app.models.impact import (
     AffectedFile,
     RelatedTest,
 )
+from app.services.risk_service import risk_service
 
 
 class ImpactService:
@@ -92,17 +93,47 @@ class ImpactService:
                 AffectedFile(file=file_path, callers=count, tests=tests_for_file)
             )
 
-        # 4. Calculate blast radius score
+        # 4. Calculate blast radius and risk model via RiskService
         num_files = len(affected_files_list)
         num_callers = sum(calling_files.values())
         num_tests = len(matched_tests)
-        raw_score = min(95, 20 + (num_files * 8) + (num_callers * 6) + (num_tests * 3))
+        total_files = len(relative_files)
 
-        risk_rating = "LOW"
-        if raw_score >= 60:
-            risk_rating = "HIGH"
-        elif raw_score >= 40:
-            risk_rating = "MODERATE"
+        # Infer architectural layers from affected files
+        distinct_layers = set()
+        for f in affected_files_list:
+            parts = Path(f.file).parts
+            if len(parts) > 1:
+                distinct_layers.add(parts[0])
+            else:
+                distinct_layers.add("root")
+        layers_count = max(1, len(distinct_layers))
+        is_cross_layer = layers_count > 1 or any("api" in f.file or "route" in f.file for f in affected_files_list)
+
+        # Detect sensitivity & database operations
+        name_lower = clean_name.lower()
+        def_lower = definition_file.lower()
+        is_security = any(k in name_lower or k in def_lower for k in ["auth", "token", "password", "secret", "jwt", "session", "perm"])
+        is_db_write = any(k in name_lower or "db" in def_lower or "model" in def_lower for k in ["save", "create", "update", "delete", "write", "commit"])
+        is_public = "api" in def_lower or "route" in def_lower or any("api" in f.file or "route" in f.file for f in affected_files_list)
+
+        risk_res = risk_service.evaluate_risk(
+            affected_files_count=num_files,
+            total_repo_files=total_files,
+            layers_count=layers_count,
+            is_cross_layer=is_cross_layer,
+            caller_count=num_callers,
+            is_shared_service=len(calling_files) >= 3,
+            related_tests_count=num_tests,
+            is_security_sensitive=is_security,
+            is_database_write=is_db_write,
+            is_public_api=is_public,
+            changed_functions_count=1,
+        )
+
+        risk_score = risk_res["score"]
+        risk_rating = risk_res["level"]
+        blast_radius_label = f"{risk_score}/100 ({risk_rating.title()})"
 
         # 5. Build dependency execution chain
         first_caller_file = affected_files_list[0].file if affected_files_list else "api/routes/gateway.py"
@@ -134,18 +165,18 @@ class ImpactService:
         risk_areas = [
             RiskArea(
                 name="Contract Integrity",
-                level="Critical" if risk_rating == "HIGH" else "Moderate",
+                level="Critical" if risk_rating in ["HIGH", "CRITICAL"] else "Moderate",
                 description=f"Modifying return signature breaks {num_callers} upstream caller(s).",
             ),
             RiskArea(
                 name="Test Suite Coverage",
-                level="Low",
+                level="High" if num_tests < 3 else "Moderate" if num_tests < 6 else "Low",
                 description=f"{num_tests} automated regression test(s) guard this execution path.",
             ),
             RiskArea(
                 name="Database Isolation",
-                level="Moderate",
-                description="Downstream transactions depend on idempotent completion.",
+                level="Moderate" if is_db_write else "Low",
+                description="Downstream transactions depend on idempotent completion." if is_db_write else "Read-only evaluation path.",
             ),
         ]
 
@@ -153,8 +184,10 @@ class ImpactService:
             affectedFilesCount=num_files,
             affectedFunctionsCount=num_callers + 2,
             relatedTestsCount=num_tests,
-            blastRadiusScore=f"{raw_score}/100 ({risk_rating.title()})",
+            blastRadiusScore=blast_radius_label,
             riskRating=risk_rating,
+            riskScore=float(risk_score),
+            riskLevel=risk_rating,
         )
 
         return ImpactAnalysisResponse(
@@ -166,6 +199,11 @@ class ImpactService:
             dependencyFlow=dependency_flow,
             affectedFiles=affected_files_list,
             relatedTests=matched_tests,
+            factors=risk_res["factors"],
+            evidence=risk_res["evidence"],
+            contributors=risk_res["contributors"],
+            recommendations=risk_res["recommendations"],
+            explanations=risk_res["explanations"],
         )
 
 

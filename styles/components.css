@@ -129,6 +129,13 @@
   white-space: nowrap;
 }
 
+.badge-critical {
+  background-color: var(--color-critical-bg);
+  border-color: var(--color-critical-border);
+  color: var(--color-critical);
+  font-weight: 700;
+}
+
 .badge-high {
   background-color: var(--color-high-bg);
   border-color: var(--color-high-border);
@@ -147,6 +154,35 @@
   background-color: var(--color-low-bg);
   border-color: var(--color-low-border);
   color: var(--color-low);
+}
+
+/* Unified Risk Engine Classification Badges */
+.badge-risk-low {
+  background-color: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-light);
+  font-weight: 600;
+}
+
+.badge-risk-moderate {
+  background-color: var(--color-medium-bg);
+  border-color: var(--color-medium-border);
+  color: var(--color-medium);
+  font-weight: 600;
+}
+
+.badge-risk-high {
+  background-color: var(--color-high-bg);
+  border-color: var(--color-high-border);
+  color: var(--color-high);
+  font-weight: 600;
+}
+
+.badge-risk-critical {
+  background-color: var(--color-critical-bg);
+  border-color: var(--color-critical-border);
+  color: var(--color-critical);
+  font-weight: 700;
 }
 
 .badge-success {

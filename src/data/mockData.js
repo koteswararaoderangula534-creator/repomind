@@ -622,9 +622,55 @@ export const IMPACT_ANALYSIS_DATA = {
     affectedFilesCount: 6,
     affectedFunctionsCount: 9,
     relatedTestsCount: 4,
-    blastRadiusScore: "62/100 (Moderate)",
-    riskRating: "HIGH"
+    blastRadiusScore: "62/100 (High)",
+    riskRating: "HIGH",
+    riskScore: 62,
+    riskLevel: "HIGH"
   },
+  factors: {
+    fileImpact: { score: 68, weight: 0.20, level: "HIGH" },
+    architectureImpact: { score: 70, weight: 0.20, level: "HIGH" },
+    dependencyImpact: { score: 65, weight: 0.20, level: "HIGH" },
+    testRisk: { score: 55, weight: 0.20, level: "HIGH" },
+    sensitivityRisk: { score: 75, weight: 0.10, level: "HIGH" },
+    complexityRisk: { score: 35, weight: 0.10, level: "MODERATE", insufficientEvidence: false }
+  },
+  contributors: [
+    { name: "Architecture", score: 70, level: "HIGH", weight: "20%" },
+    { name: "Dependencies", score: 65, level: "HIGH", weight: "20%" },
+    { name: "Verification", score: 55, level: "HIGH", weight: "20%" },
+    { name: "Change Scope", score: 68, level: "HIGH", weight: "20%" },
+    { name: "Security Sensitivity", score: 75, level: "HIGH", weight: "10%" },
+    { name: "Complexity", score: 35, level: "MODERATE", weight: "10%", note: "Measured" }
+  ],
+  explanations: [
+    "6 files are affected across the repository",
+    "Change crosses 3 architectural layers (API Gateway, Core Services, Database)",
+    "9 callers depend on the affected code",
+    "Only 4 related tests were detected (limited verification coverage)",
+    "The affected service is shared across multiple modules",
+    "Security-sensitive authentication and token validation paths are touched"
+  ],
+  recommendations: [
+    {
+      id: "rec-tests",
+      priority: "HIGH",
+      text: "Add automated tests for affected callers before executing refactoring",
+      impact: "Reduces Test Risk by up to 35 points"
+    },
+    {
+      id: "rec-arch",
+      priority: "HIGH",
+      text: "Decompose refactor across architectural layer boundaries (separate API contracts from database logic)",
+      impact: "Reduces Architecture Impact by 25 points"
+    },
+    {
+      id: "rec-dep",
+      priority: "HIGH",
+      text: "Review downstream callers and maintain signature backwards-compatibility",
+      impact: "Prevents breaking changes across 9 callers"
+    }
+  ],
   riskAreas: [
     { name: "Authentication Flow", level: "Critical", description: "All client token exchanges route through this function." },
     { name: "Session Handling", level: "High", description: "Modifying return signature breaks session cookie serialization." },
@@ -696,7 +742,7 @@ export const REFACTOR_DATA = {
         amount=int(total_amount * 100),
         currency="usd",
         source=stripe_token,
-        description=f"Tuition order for user {user_id}"
+        description=f"Subscription order for user {user_id}"
     )
     if charge.status != "succeeded":
         raise PaymentFailedException("Payment authorization failed")

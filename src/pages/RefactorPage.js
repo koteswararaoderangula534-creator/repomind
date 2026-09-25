@@ -6,6 +6,11 @@
 
 import { Icons } from "../components/Icons.js";
 import { store } from "../state/store.js";
+import {
+  calculateRefactorRiskComparison,
+  getRiskBadgeClass,
+  getRiskColor
+} from "../services/riskEngine.js";
 
 export function renderRefactorPage(state) {
   const isJunior = state.juniorMode;
@@ -14,6 +19,28 @@ export function renderRefactorPage(state) {
   const isGenerating = status === "generating";
 
   const originalLines = refactor.originalCode.split("\n");
+
+  const riskComp = calculateRefactorRiskComparison({
+    affectedFilesCount: 6,
+    totalRepoFiles: 150,
+    layersCount: 3,
+    callerCount: 9,
+    relatedTestsCount: 4,
+    isSecuritySensitive: false,
+    isDatabaseWrite: true,
+    isPublicApi: true,
+    changedFunctionsCount: 1,
+    cyclomaticComplexity: 14
+  }, {
+    affectedFilesCount: 1,
+    layersCount: 1,
+    callerCount: 1,
+    relatedTestsCount: 8,
+    isSecuritySensitive: false,
+    isDatabaseWrite: false,
+    changedFunctionsCount: 4,
+    cyclomaticComplexity: 3
+  });
 
   return `
     <div class="workspace-content">
@@ -196,34 +223,49 @@ export function renderRefactorPage(state) {
             <div class="panel-header">
               <div class="panel-title">
                 ${Icons.ImpactAnalysis(13)}
-                <span>Impact Safeguards</span>
+                <span>Risk Reduction Safeguards</span>
               </div>
-              <span class="badge badge-success">Safe</span>
+              <span class="badge badge-success">-${riskComp.reductionPercent}% Risk</span>
             </div>
 
             <div class="panel-body">
-              <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
-                <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle);">
-                  <span style="color: var(--text-muted);">Blast Radius:</span>
-                  <span style="font-weight: 600; color: var(--text-primary);">1 File, 4 Tests</span>
+              <!-- Before vs After Risk Meter -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                <div style="padding: 8px 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                  <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Before Change</div>
+                  <div style="font-size: 15px; font-weight: 700; color: ${getRiskColor(riskComp.before.level)}; margin: 2px 0;">
+                    ${riskComp.before.score}/100 <span style="font-size: 10px;">${riskComp.before.level}</span>
+                  </div>
+                  <div style="font-size: 10px; color: var(--text-secondary);">6 files • 9 callers • 4 tests</div>
                 </div>
-                <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle);">
-                  <span style="color: var(--text-muted);">Caller Compatibility:</span>
-                  <span style="color: var(--color-success-light); font-weight: 600;">100% Preserved</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle);">
-                  <span style="color: var(--text-muted);">Target Function:</span>
-                  <span style="font-family: var(--font-mono); color: var(--text-primary);">process_order()</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: var(--text-muted);">Regression Risk:</span>
-                  <span class="badge badge-low">Negligible</span>
+
+                <div style="padding: 8px 10px; background: var(--bg-canvas); border: 1px solid var(--color-success-border); border-radius: var(--radius-sm);">
+                  <div style="font-size: 10px; color: var(--color-success-light); text-transform: uppercase;">After Refactor</div>
+                  <div style="font-size: 15px; font-weight: 700; color: ${getRiskColor(riskComp.after.level)}; margin: 2px 0;">
+                    ${riskComp.after.score}/100 <span style="font-size: 10px;">${riskComp.after.level}</span>
+                  </div>
+                  <div style="font-size: 10px; color: var(--color-success-light);">1 file • 1 caller • 8 tests</div>
                 </div>
               </div>
 
-              <div style="margin-top: 14px; padding: 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 11px; color: var(--text-secondary);">
+              <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; padding-bottom: 5px; border-bottom: 1px solid var(--border-subtle);">
+                  <span style="color: var(--text-muted);">Caller Compatibility:</span>
+                  <span style="color: var(--color-success-light); font-weight: 600;">100% Preserved</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 5px; border-bottom: 1px solid var(--border-subtle);">
+                  <span style="color: var(--text-muted);">Complexity Reduction:</span>
+                  <span style="font-family: var(--font-mono); color: var(--text-primary);">14 → 3 (-78%)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Net Risk Shift:</span>
+                  <span class="badge ${getRiskBadgeClass(riskComp.after.level)}">${riskComp.delta} pts (${riskComp.after.level})</span>
+                </div>
+              </div>
+
+              <div style="margin-top: 12px; padding: 8px 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 11px; color: var(--text-secondary);">
                 ${Icons.Verification(12)}
-                <span style="margin-left: 4px;">42 automated test suites are staged to automatically verify these changes before application.</span>
+                <span style="margin-left: 4px;">42 automated test suites will verify zero breaking changes before commit staging.</span>
               </div>
             </div>
           </div>

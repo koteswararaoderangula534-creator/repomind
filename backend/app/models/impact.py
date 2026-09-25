@@ -1,6 +1,6 @@
 """Impact analysis request and response data models."""
 
-from typing import Optional, Literal
+from typing import Optional, Literal, Any
 from pydantic import BaseModel, Field
 
 
@@ -17,6 +17,8 @@ class ImpactSummary(BaseModel):
     relatedTestsCount: int
     blastRadiusScore: str
     riskRating: Literal["CRITICAL", "HIGH", "MODERATE", "LOW"]
+    riskScore: Optional[float] = None
+    riskLevel: Optional[str] = None
 
 
 class RiskArea(BaseModel):
@@ -60,3 +62,8 @@ class ImpactAnalysisResponse(BaseModel):
     dependencyFlow: list[DependencyStep] = Field(default_factory=list)
     affectedFiles: list[AffectedFile] = Field(default_factory=list)
     relatedTests: list[RelatedTest] = Field(default_factory=list)
+    factors: Optional[dict[str, Any]] = None
+    evidence: Optional[dict[str, Any]] = None
+    contributors: Optional[list[dict[str, Any]]] = None
+    recommendations: Optional[list[str]] = None
+    explanations: Optional[list[str]] = None

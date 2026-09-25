@@ -17,6 +17,7 @@ import {
 } from "../data/mockData.js";
 import { apiService } from "../services/api.js";
 import { authService } from "../services/auth.js";
+import { calculateComprehensiveRisk } from "../services/riskEngine.js";
 
 // Clean Sample Repositories (Used EXCLUSIVELY in designated Demo Evaluation sessions)
 export const DEMO_SAMPLE_REPOSITORIES = [
@@ -150,6 +151,7 @@ class Store {
       // Impact Analysis
       impactData: IMPACT_ANALYSIS_DATA,
       selectedImpactEntity: "authenticate_user()",
+      riskComparisonActive: false,
 
       // Refactoring Workflow
       refactorData: REFACTOR_DATA,
@@ -542,6 +544,92 @@ class Store {
   setJuniorMode(enabled) {
     this.setState({ juniorMode: enabled });
     this.showToast(enabled ? "Switched to Junior-friendly explanations" : "Switched to Technical engineering mode", "info");
+  }
+
+  selectImpactEntity(entity) {
+    const isOrder = entity.includes("order");
+    const data = isOrder
+      ? {
+          selectedEntity: "process_order()",
+          file: "orders.py",
+          lineRange: "84–168",
+          summary: {
+            affectedFilesCount: 3,
+            affectedFunctionsCount: 4,
+            relatedTestsCount: 3,
+            blastRadiusScore: "43/100 (Moderate)",
+            riskRating: "MODERATE",
+            riskScore: 43,
+            riskLevel: "MODERATE"
+          },
+          riskAreas: [
+            { name: "Payment Idempotency", level: "High", description: "Modifying charge delegation may result in duplicate charges without key." },
+            { name: "Database Transaction", level: "Moderate", description: "Commits to orders and line_items tables require rollback on failure." },
+            { name: "Notification Queue", level: "Low", description: "Asynchronous task queue dispatch." }
+          ],
+          dependencyFlow: [
+            { step: 1, file: "api/routes/orders.py", entity: "create_order_endpoint()", role: "Caller (API Ingress)" },
+            { step: 2, file: "orders.py", entity: "process_order()", role: "Target Focus", isTarget: true },
+            { step: 3, file: "services/billing.py", entity: "stripe_charge()", role: "Callee (Payment)" },
+            { step: 4, file: "database.py", entity: "db.commit()", role: "Callee (Persistence)" }
+          ],
+          affectedFiles: [
+            { file: "api/routes/orders.py", callers: 1, tests: ["test_order_endpoint"] },
+            { file: "checkout.py", callers: 1, tests: ["test_checkout_flow"] },
+            { file: "services/billing.py", callers: 2, tests: ["test_billing_charge"] }
+          ],
+          relatedTests: [
+            { name: "test_order_success", file: "tests/test_orders.py", status: "Passing", duration: "14ms" },
+            { name: "test_payment_failure", file: "tests/test_orders.py", status: "Passing", duration: "16ms" },
+            { name: "test_stock_validation", file: "tests/test_orders.py", status: "Passing", duration: "11ms" }
+          ]
+        }
+      : IMPACT_ANALYSIS_DATA;
+
+    this.setState({
+      selectedImpactEntity: entity,
+      impactData: data
+    });
+    this.showToast(`Updated impact focus: ${entity}`, "info");
+  }
+
+  recalculateImpactRisk() {
+    const current = this.state.impactData;
+    const entity = this.state.selectedImpactEntity || current.selectedEntity;
+    const isAuth = entity.includes("auth") || entity.includes("login");
+
+    const assessment = calculateComprehensiveRisk({
+      affectedFilesCount: current.summary.affectedFilesCount,
+      totalRepoFiles: 150,
+      layersCount: isAuth ? 3 : 2,
+      isCrossLayer: true,
+      callerCount: current.summary.affectedFunctionsCount,
+      isSharedService: true,
+      relatedTestsCount: current.summary.relatedTestsCount,
+      isSecuritySensitive: isAuth,
+      isDatabaseWrite: true,
+      isPublicApi: true,
+      changedFunctionsCount: 1,
+      cyclomaticComplexity: isAuth ? 8 : 14
+    });
+
+    const updatedData = {
+      ...current,
+      summary: {
+        ...current.summary,
+        blastRadiusScore: `${assessment.score}/100 (${assessment.level.charAt(0) + assessment.level.slice(1).toLowerCase()})`,
+        riskRating: assessment.level,
+        riskScore: assessment.score,
+        riskLevel: assessment.level
+      },
+      factors: assessment.factors,
+      contributors: assessment.contributors,
+      recommendations: assessment.recommendations,
+      explanations: assessment.explanations
+    };
+
+    this.setState({ impactData: updatedData });
+    this.showToast(`Risk Engine recalculated against workspace: ${assessment.score}/100 (${assessment.level})`, "success");
   }
 
   toggleSidebar() {

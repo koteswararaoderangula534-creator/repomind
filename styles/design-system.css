@@ -35,6 +35,10 @@
   --brand-accent-text: #58a6ff;
 
   /* Semantic System (Only where necessary) */
+  --color-critical: #cf222e;
+  --color-critical-bg: rgba(207, 34, 46, 0.14);
+  --color-critical-border: rgba(207, 34, 46, 0.4);
+
   --color-high: #f85149;
   --color-high-bg: rgba(248, 81, 73, 0.12);
   --color-high-border: rgba(248, 81, 73, 0.35);
