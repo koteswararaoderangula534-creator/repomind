@@ -33,8 +33,24 @@ export const REPOSITORY_DATA = {
     { name: "Frontend", tech: "Next.js / TypeScript", files: 48, status: "Healthy" },
     { name: "API Gateway", tech: "FastAPI / Uvicorn", files: 22, status: "1 Smells" },
     { name: "Core Services", tech: "Python Services", files: 56, status: "10 Findings" },
-    { name: "Database", tech: "PostgreSQL 15 / SQLAlchemy", files: 21, status: "2 Findings" }
-  ]
+    { name: "Database", tech: "MongoDB (Active) / Supabase (Dormant)", files: 21, status: "2 Critical Hazards" }
+  ],
+  classification: {
+    category: "Full-Stack Application",
+    confidence: 0.94,
+    signals: ["React / TypeScript Frontend", "FastAPI Ingress Routes", "MongoDB Data Pipeline"]
+  },
+  aiSummary: "RepoMind analyzed 'university-sys/student-management-system' as a full-stack application built with Python 3.11 and TypeScript. The codebase spans 147 files (~12,480 lines of code) across frontend camera capture, FastAPI ingress, and backend service orchestrations. Forensic database tracing detected dual data stores: MongoDB is the active runtime write target, while Supabase clients remain dormant. The AST engine identified 2 high-severity risks including an un-fenced concurrency race condition and historical session data truncation.",
+  semanticGroups: [
+    { domain: "Authentication & Security", fileCount: 14, description: "Token verification, RBAC permissions, and session credentials." },
+    { domain: "API Gateway & Ingress", fileCount: 22, description: "FastAPI route controllers, query endpoints, and request validations." },
+    { domain: "Core Business Logic", fileCount: 56, description: "Attendance tracking, student enrollment, grading, and batch jobs." },
+    { domain: "Data Persistence & ORM", fileCount: 21, description: "MongoDB collections, PyMongo write pipelines, and Supabase client stubs." },
+    { domain: "User Interface & Components", fileCount: 48, description: "React camera capture views, telemetry panels, and student rosters." },
+    { domain: "Test Suite & Verification", fileCount: 18, description: "Pytest suites covering auth authorization, attendance, and concurrency." }
+  ],
+  technologies: ["Python 3.11", "FastAPI", "React", "TypeScript", "MongoDB", "Supabase", "Pytest", "Uvicorn"],
+  databasesDetected: ["MongoDB (Active Write Target)", "Supabase (Dormant Client)"]
 };
 
 export const CODE_HEALTH_FINDINGS = [
@@ -381,6 +397,76 @@ export const ASK_AI_SAMPLE_QUERIES = [
     ],
     affectedEntities: ["PostgreSQL Session", "Connection Pool", "ORM Entities"],
     riskAssessment: "Medium architectural risk due to direct query leaks in route handlers."
+  },
+  {
+    id: "q-disappear",
+    query: "Why might this data disappear?",
+    category: "Data Integrity Forensic",
+    technicalExplanation: "The AST parser detected a single-record query method `find_one()` executing against the multi-session collection in services/attendance_service.py:112. When a student accumulates multiple attendance events over time, `find_one()` returns only the first document matched by the index cursor. All subsequent sessions are silently omitted from the API response payload, creating the observable illusion that prior attendance data has vanished or been deleted.",
+    juniorExplanation: "Imagine taking roll call by looking only at the very first line of yesterday's sign-in sheet. Even if the student came to class 10 times, the computer only checks line 1 and ignores the rest! The data isn't deleted, but the code is looking with blinders on.",
+    flowSteps: [
+      { name: "CameraCapture.tsx", role: "Frontend UI", action: "Captures face token & sends POST request" },
+      { name: "api/routes/attendance.py", role: "API Gateway", action: "Validates session payload" },
+      { name: "services/attendance_service.py", role: "Service Logic", action: "Calls db.attendance.find_one() [TRUNCATION HAZARD]" },
+      { name: "MongoDB", role: "Active Store", action: "Returns only 1 document despite multi-record collection" }
+    ],
+    sources: [
+      { file: "services/attendance_service.py", lines: "112–115", func: "get_student_attendance_summary", fullSnippet: `112: record = await db.attendance.find_one({"student_id": student_id})
+113: if not record:
+114:     return {"sessions": []}
+115: return {"sessions": record.get("sessions", [])}` }
+    ],
+    affectedEntities: ["attendance_collection", "session_records", "attendance_summary_view"],
+    riskAssessment: "CRITICAL DATA TRUNCATION: Replace find_one() with db.attendance.find() and aggregate session arrays across all documents."
+  },
+  {
+    id: "q-concurrency",
+    query: "What happens when two users take attendance simultaneously?",
+    category: "Concurrency Hazard Forensic",
+    technicalExplanation: "When two camera inputs or concurrent users send attendance submissions at timestamp t_0, both execute services/attendance_service.py:78 concurrently. The operation uses an un-fenced MongoDB $push update without versioning, document locking, or etag checks. If the underlying document is fetched, modified, and saved concurrently, one of the two session updates will be silently overwritten by the slower write, causing permanent event loss without generating a database error.",
+    juniorExplanation: "Imagine two teachers writing in the exact same paper logbook at the exact same second. Teacher A reads page 1, Teacher B reads page 1. Teacher A writes their note and closes the book. Then Teacher B writes their note on their copy and closes the book, erasing Teacher A's note! There is no waiting line (lock) to prevent them from stepping on each other.",
+    flowSteps: [
+      { name: "Camera 1 & Camera 2", role: "Concurrent Ingress", action: "Submit attendance tokens simultaneously at t0" },
+      { name: "api/routes/attendance.py", role: "Async Gateway", action: "Spawns 2 concurrent coroutines" },
+      { name: "services/attendance_service.py:78", role: "Unsynchronized Push", action: "Executes $push array mutation without version fence" },
+      { name: "MongoDB", role: "Collision Store", action: "Race condition occurs; slower write clobbers faster update" }
+    ],
+    sources: [
+      { file: "services/attendance_service.py", lines: "75–82", func: "record_attendance_session", fullSnippet: `75: async def record_attendance_session(student_id: str, session_data: dict):
+76:     # HAZARD: Un-fenced $push without version increment or optimistic lock
+77:     result = await db.attendance.update_one(
+78:         {"student_id": student_id},
+79:         {"$push": {"sessions": session_data}}
+80:     )
+81:     return result.modified_count > 0` }
+    ],
+    affectedEntities: ["attendance.sessions", "optimistic_lock_version", "session_timeline"],
+    riskAssessment: "CRITICAL CONCURRENCY HAZARD: Introduce optimistic lock field (__v) with conditional match or use atomic distributed locks."
+  },
+  {
+    id: "q-supabase",
+    query: "Where is data written and why is Supabase dormant?",
+    category: "Database Forensic Distinction",
+    technicalExplanation: "RepoMind AST analysis verified that 100% of runtime data persistence operations execute against MongoDB via PyMongo/Motor in services/attendance_service.py and services/student_service.py. Conversely, Supabase client initialization exists in config.py:18, but cross-referencing all 147 files revealed ZERO write, read, or query operations invoking the Supabase client. Additionally, SUPABASE_KEY is null in environment variables, confirming Supabase is a dormant, abandoned client.",
+    juniorExplanation: "The app has two filing cabinets: a big digital one (MongoDB) that gets used all day long, and a fancy new one in the corner (Supabase) that someone bought but never put any keys or files into. All real data lives in MongoDB.",
+    flowSteps: [
+      { name: "config.py:18", role: "Client Stub", action: "Initializes supabase = create_client(url, key=None)" },
+      { name: "services/attendance_service.py", role: "Active Write Route", action: "All inserts routed to MongoDB attendance collection" },
+      { name: "services/student_service.py", role: "Active Query Route", action: "All lookups routed to MongoDB student collection" },
+      { name: "Supabase Service", role: "Dormant System", action: "0 reads, 0 writes, 0 active connections" }
+    ],
+    sources: [
+      { file: "config.py", lines: "15–20", func: "supabase_client", fullSnippet: `15: # Dormant client - credentials missing
+16: SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+17: SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+18: supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_KEY else None` },
+      { file: "services/attendance_service.py", lines: "77–80", func: "record_attendance_session", fullSnippet: `77: result = await db.attendance.update_one(
+78:     {"student_id": student_id},
+79:     {"$push": {"sessions": session_data}}
+80: )` }
+    ],
+    affectedEntities: ["MongoDB (Active)", "Supabase (Dormant)", "config.py"],
+    riskAssessment: "ARCHITECTURAL DORMANT DEPENDENCY: Remove unused Supabase dependencies or complete the data migration pipeline."
   }
 ];
 

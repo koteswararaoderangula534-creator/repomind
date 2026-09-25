@@ -52,6 +52,11 @@ class RepositoryOverview(BaseModel):
     status: str = "Analyzed"
     metrics: RepositoryMetrics
     layers: list[LayerSummary] = Field(default_factory=list)
+    classification: Optional[str] = "Full-Stack Application"
+    ai_summary: Optional[str] = None
+    semantic_groups: Optional[list[dict]] = None
+    technologies: Optional[list[str]] = None
+    databases_detected: Optional[list[str]] = None
 
 
 class RecentRepositoryItem(BaseModel):

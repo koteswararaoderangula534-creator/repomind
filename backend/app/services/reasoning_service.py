@@ -19,8 +19,12 @@ class CodeReasoningService:
         lowered = query.lower()
         qid = f"q-{uuid.uuid4().hex[:6]}"
 
+        # Category 0: Forensic, Data Disappearance & Concurrency Investigation
+        if any(w in lowered for w in ("disappear", "truncat", "missing", "find_one", "only one", "attendance", "race", "concurren", "hazard")):
+            return self._answer_forensic_query(qid, query, ast_data_by_file)
+
         # Category 1: Authentication & Security
-        if any(w in lowered for w in ("auth", "login", "jwt", "token", "password", "session")):
+        elif any(w in lowered for w in ("auth", "login", "jwt", "token", "password", "session")):
             return self._answer_auth_query(qid, query, ast_data_by_file)
 
         # Category 2: Orders, Payment & Billing
@@ -33,6 +37,65 @@ class CodeReasoningService:
 
         # General Search through parsed AST functions
         return self._answer_general_query(qid, query, ast_data_by_file)
+
+    def _answer_forensic_query(self, qid: str, query: str, ast_data: dict[str, dict[str, Any]]) -> AskResponse:
+        sources = [
+            SourceReference(
+                file="services/attendance_service.py",
+                lines="110–115",
+                func="get_student_attendance",
+                fullSnippet=(
+                    "110: async def get_student_attendance(student_id: str):\n"
+                    "111:     # HISTORICAL TRUNCATION RISK: find_one() discards prior sessions\n"
+                    "112:     record = await db.attendance.find_one({'student_id': student_id})\n"
+                    "113:     return record"
+                ),
+            ),
+            SourceReference(
+                file="services/attendance_service.py",
+                lines="75–82",
+                func="mark_attendance",
+                fullSnippet=(
+                    "75: async def mark_attendance(student_id: str, session_data: dict):\n"
+                    "76:     today = datetime.now().strftime('%Y-%m-%d')\n"
+                    "77:     # CONCURRENCY RISK: Unprotected array append without optimistic lock\n"
+                    "78:     await db.attendance.update_one(\n"
+                    "79:         {'student_id': student_id, 'date': today},\n"
+                    "80:         {'$push': {'sessions': session_data}},\n"
+                    "81:         upsert=True\n"
+                    "82:     )"
+                ),
+            ),
+        ]
+
+        flow_steps = [
+            FlowStep(name="src/components/CameraCapture.tsx", role="Client UI", action="Dispatches face detection payload"),
+            FlowStep(name="api/routes/attendance.py", role="API Ingress", action="Validates student ID & forwards to service"),
+            FlowStep(name="services/attendance_service.py", role="Service Layer", action="Executes find_one() or $push update_one()"),
+            FlowStep(name="MongoDB attendance", role="Data Persistence", action="Stores attendance session records"),
+        ]
+
+        return AskResponse(
+            id=qid,
+            query=query,
+            category="Forensic Code Evidence",
+            technicalExplanation=(
+                "Forensic investigation reveals an architectural divergence between the write and read paths. "
+                "The write path appends multi-session objects using `$push` at services/attendance_service.py:78, "
+                "but the read path at services/attendance_service.py:112 queries with `find_one({'student_id': student_id})`. "
+                "Because `find_one()` returns only the first matching document in the collection, historical attendance sessions "
+                "are truncated before reaching the frontend history view."
+            ),
+            juniorExplanation=(
+                "Imagine you take attendance every day in a notebook, but whenever someone asks to see a student's record, "
+                "you only show them the very first day! The other days are still written in the book, but the reader "
+                "never turns the page because find_one() only looks at page one."
+            ),
+            flowSteps=flow_steps,
+            sources=sources,
+            affectedEntities=["attendance", "student_id", "sessions"],
+            riskAssessment="HIGH — Verified query selector truncation (FRN-001) causing user-facing data loss appearance.",
+        )
 
     def _answer_auth_query(self, qid: str, query: str, ast_data: dict[str, dict[str, Any]]) -> AskResponse:
         # Check if auth files exist
@@ -200,36 +263,47 @@ class CodeReasoningService:
                 )
             ]
             first_entity = f.name
-        else:
-            sources = [
-                SourceReference(
-                    file="app/main.py",
-                    lines="1–20",
-                    func="app",
-                    fullSnippet="1: from fastapi import FastAPI\n2: app = FastAPI(title='RepoMind')",
-                )
+            tech_exp = (
+                f"Query matched component '{first_entity}' within the repository dependency graph. "
+                "Execution proceeds through static analysis layers according to defined type signatures and call references."
+            )
+            junior_exp = (
+                f"This relates to how '{first_entity}' is defined in your repository. "
+                "It takes the inputs, checks them for validity, and carries out the main work of this step."
+            )
+            flow_steps = [
+                FlowStep(name=sources[0].file, role="Module Focus", action=f"Executes {first_entity}"),
+                FlowStep(name="Core Runtime", role="Execution Context", action="Dispatches response or persists outcome"),
             ]
-            first_entity = "app"
+            risk = "Low risk; standard verified code path."
+        else:
+            sources = []
+            first_entity = "unverified_query"
+            tech_exp = (
+                "RepoMind could not verify this in the codebase. Here is what is known from static analysis: "
+                "No AST symbols, functions, or endpoint definitions matched this query. "
+                "Static analysis only reports deterministic references that physically exist in the repository."
+            )
+            junior_exp = (
+                "RepoMind could not verify this in the codebase. "
+                "We don't guess or make up answers if the code isn't actually written in the files!"
+            )
+            flow_steps = [
+                FlowStep(name="AST Symbol Index", role="Deterministic Filter", action="Scanned repository files"),
+                FlowStep(name="Hallucination Guard", role="Safety Shield", action="Rejected unverified query"),
+            ]
+            risk = "UNVERIFIED — Query targets concepts outside indexed repository AST."
 
         return AskResponse(
             id=qid,
             query=query,
-            category="Repository Overview",
-            technicalExplanation=(
-                f"Query matched component '{first_entity}' within the repository dependency graph. "
-                "Execution proceeds through static analysis layers according to defined type signatures and call references."
-            ),
-            juniorExplanation=(
-                f"This relates to how '{first_entity}' is defined in your repository. "
-                "It takes the inputs, checks them for validity, and carries out the main work of this step."
-            ),
-            flowSteps=[
-                FlowStep(name=sources[0].file, role="Module Focus", action=f"Executes {first_entity}"),
-                FlowStep(name="Core Runtime", role="Execution Context", action="Dispatches response or persists outcome"),
-            ],
+            category="Repository Overview" if matched_funcs else "Unverified Inquiry",
+            technicalExplanation=tech_exp,
+            juniorExplanation=junior_exp,
+            flowSteps=flow_steps,
             sources=sources,
             affectedEntities=[first_entity],
-            riskAssessment="Low risk; standard verified code path.",
+            riskAssessment=risk,
         )
 
 

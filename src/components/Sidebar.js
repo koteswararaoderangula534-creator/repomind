@@ -20,15 +20,15 @@ export function renderSidebar(state) {
 
   const navItems = [
     { id: "app/overview", label: "Overview", icon: Icons.Overview(15) },
-    { id: "app/repository", label: "Repository", icon: Icons.Repository(15) },
-    { id: "app/ask", label: "Ask AI", icon: Icons.AskAI(15) },
-    { id: "app/architecture", label: "Architecture", icon: Icons.Architecture(15) },
-    { id: "app/forensic", label: "Forensic Analysis", icon: Icons.ForensicAnalysis(15), badge: "Deep", isAlert: false },
-    { id: "app/code-health", label: "Code Health", icon: Icons.CodeHealth(15), badge: findingsCount, isAlert: findingsCount > 0 },
-    { id: "app/impact", label: "Impact Analysis", icon: Icons.ImpactAnalysis(15) },
-    { id: "app/refactor", label: "Refactor", icon: Icons.Refactor(15) },
+    { id: "app/repository", label: "Repository Ingress", icon: Icons.Repository(15) },
+    { id: "app/ask", label: "Ask RepoMind", icon: Icons.AskAI(15), badge: "AI", isAlert: false },
+    { id: "app/architecture", label: "Architecture Topology", icon: Icons.Architecture(15) },
+    { id: "app/forensic", label: "Advanced Forensics", icon: Icons.ForensicAnalysis(15), badge: "Deep", isAlert: false },
+    { id: "app/code-health", label: "Risks & Evidence", icon: Icons.CodeHealth(15), badge: findingsCount, isAlert: findingsCount > 0 },
+    { id: "app/impact", label: "Blast Radius", icon: Icons.ImpactAnalysis(15) },
+    { id: "app/refactor", label: "Refactor Studio", icon: Icons.Refactor(15) },
     { id: "app/diff", label: "Diff Viewer", icon: Icons.DiffViewer(15) },
-    { id: "app/verification", label: "Verification", icon: Icons.Verification(15), badge: `${testsPassed} passed`, isAlert: false }
+    { id: "app/verification", label: "Verification Suites", icon: Icons.Verification(15), badge: `${testsPassed} passed`, isAlert: false }
   ];
 
   return `

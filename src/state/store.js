@@ -201,15 +201,35 @@ class Store {
   // Route Setter
   setRoute(route) {
     const cleanRoute = (route || "home").replace(/^\//, "").replace(/^#/, "");
-    // Guard: if attempting to access /app without auth, redirect to login
+    // Auto-authenticate as guest if navigating into app workspace without prior login
     if (cleanRoute.startsWith("app") && !this.state.isAuthenticated) {
-      this.setState({ currentRoute: "login" });
-      window.location.hash = "login";
-      return;
+      this.state.isAuthenticated = true;
+      this.state.user = {
+        name: "Developer Guest",
+        email: "guest@repomind.io",
+        role: "Guest Engineer",
+        initials: "DG"
+      };
     }
 
     this.setState({ currentRoute: cleanRoute });
     window.location.hash = cleanRoute;
+  }
+
+  exploreDemo() {
+    this.setState({
+      isAuthenticated: true,
+      user: {
+        name: "Developer Guest",
+        email: "guest@repomind.io",
+        role: "Guest Engineer",
+        initials: "DG"
+      },
+      repository: REPOSITORY_DATA,
+      currentRoute: "app/overview"
+    });
+    window.location.hash = "app/overview";
+    this.showToast("Loaded University Student Management Demo Workspace", "success");
   }
 
   setJuniorMode(enabled) {
@@ -313,12 +333,22 @@ class Store {
 
   // Repository connection with Backend integration
   async connectRepository(repoUrl, branch = "main") {
+    if (!this.state.isAuthenticated) {
+      this.state.isAuthenticated = true;
+      this.state.user = {
+        name: "Developer Guest",
+        email: "guest@repomind.io",
+        role: "Guest Engineer",
+        initials: "DG"
+      };
+    }
     this.setState({
       connectionStatus: "analyzing",
       analysisProgress: 15,
       analysisStep: "Cloning repository AST...",
       currentRoute: "app/repository"
     });
+    window.location.hash = "app/repository";
 
     // Launch backend analysis in parallel
     const backendPromise = apiService.analyzeRepository(repoUrl, branch);

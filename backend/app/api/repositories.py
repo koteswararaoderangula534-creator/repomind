@@ -17,6 +17,7 @@ from app.services.ast_service import ast_service
 from app.services.health_service import health_service
 from app.services.architecture_service import architecture_service
 from app.services.forensic_service import forensic_service
+from app.services.intelligence_service import intelligence_service
 
 router = APIRouter(prefix="/repositories", tags=["Repositories"])
 logger = get_logger("api.repositories")
@@ -124,7 +125,38 @@ def analyze_repository(payload: AnalyzeRequest):
             repo_id=repo_id,
         )
 
-        # 9. Store session in memory
+        # 9. AI/ML Codebase Intelligence Layer
+        file_str_list = [str(f).replace("\\", "/") for f in relative_files]
+        dependencies = scan_res.get("dependencies", [])
+        classification_res = intelligence_service.classify_repository(
+            files=file_str_list,
+            languages=scan_res.get("languages", {}),
+            dependencies=dependencies,
+        )
+        semantic_groups = intelligence_service.semantic_code_grouping(file_str_list)
+
+        detected_dbs = []
+        for db in forensic_report.databases:
+            detected_dbs.append(f"{db.name} ({db.status})")
+
+        ai_summary = intelligence_service.generate_codebase_summary(
+            repo_name=meta["repo"],
+            primary_lang=scan_res["primary_language"],
+            secondary_lang=scan_res.get("secondary_language"),
+            languages=scan_res.get("languages", {}),
+            layers=[l.model_dump() for l in layers],
+            detected_databases=detected_dbs,
+            findings_count=len(findings) + len(forensic_report.findings),
+            metrics=metrics.model_dump(),
+            is_demo=False,
+        )
+
+        overview.classification = classification_res["category"]
+        overview.ai_summary = ai_summary
+        overview.semantic_groups = semantic_groups
+        overview.databases_detected = detected_dbs
+
+        # 10. Store session in memory
         session = AnalyzedRepositorySession(
             overview=overview,
             workspace_path=ws.path,

@@ -75,6 +75,15 @@ def populate_demo_repository():
             LayerSummary(name="Core Services", tech="Python Services", files=56, status="10 Findings"),
             LayerSummary(name="Database", tech="PostgreSQL 15 / SQLAlchemy", files=21, status="2 Findings"),
         ],
+        classification="Full-Stack Web Application",
+        ai_summary=(
+            "RepoMind analyzed 'student-management-system' as a full-stack Python & TypeScript web application. "
+            "The backend utilizes FastAPI with an active MongoDB driver for attendance persistence, while a dormant Supabase "
+            "client configuration is present in environment settings without caller references. Static forensic analysis identified "
+            "6 potential concurrency and query truncation hazard patterns."
+        ),
+        technologies=["FastAPI", "Python 3.11", "React", "TypeScript", "MongoDB", "SQLAlchemy", "PostgreSQL"],
+        databases_detected=["MongoDB (Active Writes & Reads)", "PostgreSQL (ORM Models)", "Supabase (Dormant Configuration)"],
     )
 
     demo_arch = architecture_service.build_architecture_graph(
