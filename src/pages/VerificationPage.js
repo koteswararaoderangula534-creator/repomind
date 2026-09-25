@@ -15,6 +15,10 @@ export function renderVerificationPage(state) {
   const isApplied = status === "applied";
   const explanation = isJunior ? ver.explanation.junior : ver.explanation.technical;
 
+  const isNotAvailable = ver && (ver.status === "Not Available" || ver.totalTests === 0);
+  const isFailed = ver && ver.status === "Failed";
+  const isPassed = ver && ver.status === "Passed" && ver.totalTests > 0;
+
   return `
     <div class="workspace-content">
       <div class="page-header">
@@ -46,7 +50,7 @@ export function renderVerificationPage(state) {
           <div class="junior-callout-content">
             <div class="junior-callout-title">Safe Verification (Junior Mode)</div>
             <div class="junior-callout-text">
-              We never save changes directly without proving they work. Here, RepoMind runs all 42 automated tests against the refactored code. Because every single test passed before and after, we know no bugs were introduced.
+              We never save changes directly without proving they work. Here, RepoMind runs all automated tests against the refactored code. Because every single test passed before and after, we know no bugs were introduced.
             </div>
           </div>
         </div>
@@ -74,12 +78,12 @@ export function renderVerificationPage(state) {
         <div class="panel-body" style="padding: 14px 18px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
           <div>
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span class="badge ${isRunning ? 'badge-medium' : 'badge-success'}" style="font-size: 12px; padding: 2px 8px;">
-                ${isRunning ? Icons.ImpactAnalysis(12) : Icons.Check(12)}
-                <span>${isRunning ? "Running tests..." : "✓ Verification successful"}</span>
+              <span class="badge ${isRunning ? 'badge-medium' : (isNotAvailable ? 'badge-outline' : (isFailed ? 'badge-high' : 'badge-success'))}" style="font-size: 12px; padding: 2px 8px;">
+                ${isRunning ? Icons.ImpactAnalysis(12) : (isNotAvailable ? Icons.Info(12) : (isFailed ? Icons.AlertTriangle(12) : Icons.Check(12)))}
+                <span>${isRunning ? "Running tests..." : (isNotAvailable ? "Test Suites Not Available" : (isFailed ? "Verification Failed" : "✓ Verification successful"))}</span>
               </span>
               <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono);">
-                ${isRunning ? `${state.verificationProgress}%` : `${ver.passedCount} / ${ver.totalTests} passed`}
+                ${isRunning ? `${state.verificationProgress}%` : (isNotAvailable ? "0 test suites found" : `${ver.passedCount} / ${ver.totalTests} passed`)}
               </span>
             </div>
             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; max-width: 680px;">
@@ -100,10 +104,10 @@ export function renderVerificationPage(state) {
               class="btn btn-success btn-sm" 
               id="btn-verification-approve"
               ${isRunning || isApplied ? 'disabled' : ''}
-              title="Verify before applying"
+              title="${isNotAvailable ? 'Approve with static syntax verification only' : 'Verify before applying'}"
             >
               ${Icons.Check(12)}
-              <span>Approve & Apply</span>
+              <span>${isNotAvailable ? 'Approve (Static Validated)' : 'Approve & Apply'}</span>
             </button>
           </div>
         </div>

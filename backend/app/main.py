@@ -7,7 +7,13 @@ from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
 from app.core.store import repo_store, AnalyzedRepositorySession
 from app.models.common import error_response
-from app.models.repository import RepositoryOverview, RepositoryMetrics, FindingsBreakdown, LayerSummary
+from app.models.repository import (
+    RepositoryOverview,
+    RepositoryMetrics,
+    FindingsBreakdown,
+    LayerSummary,
+    LanguageComposition,
+)
 from app.models.finding import CodeHealthFinding
 from app.api import (
     health,
@@ -50,12 +56,46 @@ def populate_demo_repository():
     demo_id = "repo-student-mgmt"
     demo_overview = RepositoryOverview(
         id=demo_id,
-        name="university-sys/student-management-system",
-        url="https://github.com/university-sys/student-management-system",
+        name="Demo Repository (Full-Stack SaaS Core)",
+        url="https://github.com/repomind/demo-saas-platform",
         branch="main",
         commit="8f4a9b2",
         primaryLanguage="Python 3.11",
         secondaryLanguage="FastAPI / TypeScript",
+        languages=[
+            LanguageComposition(
+                name="Python",
+                percentage=54.5,
+                filesCount=56,
+                linesCount=6800,
+                supportLevel="Full AST",
+                capabilities={"detection": True, "ast": True, "dependencies": True, "impact": True, "risk": True, "health": True, "refactor": True, "verification": True},
+            ),
+            LanguageComposition(
+                name="TypeScript",
+                percentage=31.2,
+                filesCount=48,
+                linesCount=3900,
+                supportLevel="Full AST",
+                capabilities={"detection": True, "ast": True, "dependencies": True, "impact": True, "risk": True, "health": True, "refactor": True, "verification": True},
+            ),
+            LanguageComposition(
+                name="SQL",
+                percentage=10.3,
+                filesCount=21,
+                linesCount=1280,
+                supportLevel="Symbol AST",
+                capabilities={"detection": True, "ast": True, "dependencies": False, "impact": False, "risk": True, "health": True, "refactor": False, "verification": False},
+            ),
+            LanguageComposition(
+                name="YAML",
+                percentage=4.0,
+                filesCount=8,
+                linesCount=500,
+                supportLevel="Detection Only",
+                capabilities={"detection": True, "ast": False, "dependencies": False, "impact": False, "risk": False, "health": False, "refactor": False, "verification": False},
+            ),
+        ],
         lastAnalyzed="Today at 18:32 UTC",
         analysisDuration="14.2s",
         status="Analyzed",
@@ -66,7 +106,7 @@ def populate_demo_repository():
             findingsCount=13,
             findingsBreakdown=FindingsBreakdown(high=2, medium=7, low=4),
             codeLines=12480,
-            testCoverage="88.4%",
+            testCoverage="88.4% [Demo Sandbox]",
             dependenciesCount=34,
         ),
         layers=[
@@ -75,19 +115,18 @@ def populate_demo_repository():
             LayerSummary(name="Core Services", tech="Python Services", files=56, status="10 Findings"),
             LayerSummary(name="Database", tech="PostgreSQL 15 / SQLAlchemy", files=21, status="2 Findings"),
         ],
-        classification="Full-Stack Web Application",
+        classification="[Demo Repository] Full-Stack SaaS Application",
         ai_summary=(
-            "RepoMind analyzed 'student-management-system' as a full-stack Python & TypeScript web application. "
-            "The backend utilizes FastAPI with an active MongoDB driver for attendance persistence, while a dormant Supabase "
-            "client configuration is present in environment settings without caller references. Static forensic analysis identified "
-            "6 potential concurrency and query truncation hazard patterns."
+            "[Demo Repository] RepoMind analyzed this demonstration codebase as a polyglot Python & TypeScript SaaS commerce platform. "
+            "The backend utilizes FastAPI with MongoDB and PostgreSQL ORM models, with full AST dependency mapping, "
+            "6 static forensic hazard patterns, and automated refactoring simulation."
         ),
         technologies=["FastAPI", "Python 3.11", "React", "TypeScript", "MongoDB", "SQLAlchemy", "PostgreSQL"],
         databases_detected=["MongoDB (Active Writes & Reads)", "PostgreSQL (ORM Models)", "Supabase (Dormant Configuration)"],
     )
 
     demo_arch = architecture_service.build_architecture_graph(
-        repo_name="student-management-system",
+        repo_name="demo-saas-platform",
         relative_files=[],
         ast_data_by_file={},
     )
@@ -109,7 +148,7 @@ def populate_demo_repository():
             impactEntity="SECRET_KEY",
             codeSnippet=(
                 "25: class Settings(BaseSettings):\n"
-                "26:     APP_NAME: str = 'StudentManagementAPI'\n"
+                "26:     APP_NAME: str = 'CoreSaaSAPI'\n"
                 "27:     SECRET_KEY: str = 'd948a73f9104b2e811c038290fbb62a1'  # RISK: hardcoded\n"
                 "28:     ALGORITHM: str = 'HS256'\n"
                 "29:     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60"
@@ -119,20 +158,20 @@ def populate_demo_repository():
             id="FND-002",
             severity="HIGH",
             rule="SEC-004",
-            title="SQL Injection Risk in Student Query",
+            title="SQL Injection Risk in User Query",
             description="Raw formatted SQL query using f-strings inside cursor execution bypasses parameter sanitization.",
             juniorDescription="User input is directly inserted into a database query. If someone puts malicious commands into their search, the database might execute them. Using prepared parameters fixes this.",
-            file="services/student_service.py",
+            file="services/user_service.py",
             line=114,
-            module="StudentService",
+            module="UserService",
             status="Open",
             category="Security",
             suggestedRefactorId=None,
-            impactEntity="search_students_raw",
+            impactEntity="search_users_raw",
             codeSnippet=(
-                "112: def search_students_raw(db, query: str):\n"
+                "112: def search_users_raw(db, query: str):\n"
                 "113:     cursor = db.cursor()\n"
-                "114:     sql = f\"SELECT * FROM students WHERE name LIKE '%{query}%'\"\n"
+                "114:     sql = f\"SELECT * FROM users WHERE name LIKE '%{query}%'\"\n"
                 "115:     cursor.execute(sql)\n"
                 "116:     return cursor.fetchall()"
             ),
@@ -166,20 +205,20 @@ def populate_demo_repository():
             severity="MEDIUM",
             rule="ARCH-002",
             title="Direct DB Access in Route Handler",
-            description="Route handler directly invokes SQLAlchemy session query instead of delegating through enrollment service layer.",
+            description="Route handler directly invokes SQLAlchemy session query instead of delegating through subscription service layer.",
             juniorDescription="The web route is talking directly to the database instead of asking the service layer. Keeping database logic in service files prevents messy duplication across routes.",
-            file="api/routes/enrollment.py",
+            file="api/routes/subscriptions.py",
             line=42,
             module="APIRoutes",
             status="Open",
             category="Architecture",
             suggestedRefactorId=None,
-            impactEntity="enroll_student_endpoint",
+            impactEntity="subscribe_user_endpoint",
             codeSnippet=(
-                "41: @router.post('/enroll')\n"
-                "42: def enroll_student(payload: EnrollSchema, db: Session = Depends(get_db)):\n"
+                "41: @router.post('/subscribe')\n"
+                "42: def subscribe_user(payload: SubscribeSchema, db: Session = Depends(get_db)):\n"
                 "43:     # Bypassing service layer:\n"
-                "44:     record = db.query(Enrollment).filter_by(student_id=payload.student_id).first()"
+                "44:     record = db.query(Subscription).filter_by(user_id=payload.user_id).first()"
             ),
         ),
     ]

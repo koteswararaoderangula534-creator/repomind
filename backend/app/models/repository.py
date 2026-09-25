@@ -30,6 +30,16 @@ class RepositoryMetrics(BaseModel):
     dependenciesCount: int = 0
 
 
+class LanguageComposition(BaseModel):
+    """Detailed composition and capability metadata for an individual language."""
+    name: str
+    percentage: float = 0.0
+    filesCount: int = 0
+    linesCount: int = 0
+    supportLevel: str = "Detection Only"  # "Full AST" | "Symbol AST" | "Detection Only" | "Unsupported"
+    capabilities: dict[str, bool] = Field(default_factory=dict)
+
+
 class LayerSummary(BaseModel):
     """Architectural layer summary in the repository overview."""
     name: str
@@ -47,6 +57,7 @@ class RepositoryOverview(BaseModel):
     commit: str = "HEAD"
     primaryLanguage: str = "Unknown"
     secondaryLanguage: Optional[str] = None
+    languages: list[LanguageComposition] = Field(default_factory=list)
     lastAnalyzed: str
     analysisDuration: str
     status: str = "Analyzed"

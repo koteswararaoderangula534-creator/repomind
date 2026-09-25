@@ -5,14 +5,15 @@ import re
 from pathlib import Path
 from collections import defaultdict
 from app.core.security import is_safe_source_file
-from app.models.repository import RepositoryMetrics, LayerSummary, FindingsBreakdown
+from app.models.repository import RepositoryMetrics, LayerSummary, FindingsBreakdown, LanguageComposition
+from app.services.ast_service import LANGUAGE_CAPABILITY_MATRIX
 
 EXTENSION_TO_LANGUAGE = {
     ".py": "Python",
     ".ts": "TypeScript",
-    ".tsx": "TypeScript (React)",
+    ".tsx": "TypeScript",
     ".js": "JavaScript",
-    ".jsx": "JavaScript (React)",
+    ".jsx": "JavaScript",
     ".go": "Go",
     ".rs": "Rust",
     ".java": "Java",
@@ -35,10 +36,10 @@ class ScannerService:
     def scan_workspace(self, workspace_path: Path) -> dict:
         """
         Scans all files in workspace_path and returns:
-        - file_paths: list of relative Paths
-        - language_counts: dict[str, int]
+        - relative_files: list of relative Paths
         - primary_language: str
         - secondary_language: str | None
+        - languages: list[LanguageComposition]
         - metrics: RepositoryMetrics
         - layers: list[LayerSummary]
         """
@@ -60,7 +61,7 @@ class ScannerService:
         }
 
         for root, dirs, files in os.walk(workspace_path):
-            dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "venv", "__pycache__", ".git")]
+            dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "venv", "__pycache__", ".git", "dist", "build")]
             rel_root = Path(root).relative_to(workspace_path)
 
             for file in files:
@@ -82,7 +83,7 @@ class ScannerService:
 
                 # Check if test file
                 is_test = False
-                if lower_name.startswith("test_") or lower_name.endswith("_test.py") or "test" in rel_file.parts:
+                if lower_name.startswith("test_") or lower_name.endswith("_test.py") or "test" in rel_file.parts or ".test." in lower_name or ".spec." in lower_name:
                     test_files += 1
                     is_test = True
 
@@ -108,14 +109,14 @@ class ScannerService:
                     lang_file_counts[lang] += 1
 
                     if is_test:
-                        # Count def test_ functions
-                        test_funcs_count += sum(1 for line in lines if line.strip().startswith("def test_"))
+                        # Count test functions
+                        test_funcs_count += sum(1 for line in lines if line.strip().startswith("def test_") or "it(" in line or "test(" in line)
                 except Exception:
                     pass
 
         # Determine primary and secondary languages
         sorted_langs = sorted(
-            [l for l in lang_line_counts.items() if l[0] not in ("Other", "JSON", "Markdown", "YAML")],
+            [l for l in lang_line_counts.items() if l[0] not in ("Other", "JSON", "Markdown", "YAML", "CSS", "SCSS", "HTML")],
             key=lambda x: x[1],
             reverse=True,
         )
@@ -123,49 +124,84 @@ class ScannerService:
         primary_lang = sorted_langs[0][0] if sorted_langs else "Python"
         secondary_lang = sorted_langs[1][0] if len(sorted_langs) > 1 else None
 
+        # Build genuine polyglot LanguageComposition list
+        code_languages: list[LanguageComposition] = []
+        total_code_lines = sum(
+            lines for lang, lines in lang_line_counts.items()
+            if lang not in ("Other", "JSON", "Markdown", "YAML", "CSS", "SCSS", "HTML")
+        )
+        denom = total_code_lines if total_code_lines > 0 else (total_lines if total_lines > 0 else 1)
+
+        for lang, line_count in sorted(lang_line_counts.items(), key=lambda x: x[1], reverse=True):
+            if line_count <= 0:
+                continue
+            pct = round((line_count / denom) * 100.0, 1)
+            matrix_entry = LANGUAGE_CAPABILITY_MATRIX.get(lang, {
+                "detection": True,
+                "ast": False,
+                "dependencies": False,
+                "impact": False,
+                "risk": False,
+                "health": False,
+                "refactor": False,
+                "verification": False,
+                "support_level": "Detection Only",
+            })
+            code_languages.append(
+                LanguageComposition(
+                    name=lang,
+                    percentage=min(100.0, pct),
+                    filesCount=lang_file_counts[lang],
+                    linesCount=line_count,
+                    supportLevel=matrix_entry.get("support_level", "Detection Only"),
+                    capabilities={k: v for k, v in matrix_entry.items() if k not in ("support_level", "note")},
+                )
+            )
+
         # Build LayerSummary list
         layers = [
             LayerSummary(
                 name="Frontend",
                 tech=f"{secondary_lang or 'Next.js / HTML'}",
-                files=max(layer_files["Frontend"], 1),
-                status="Healthy",
+                files=layer_files["Frontend"],
+                status="Healthy" if layer_files["Frontend"] > 0 else "Not Detected",
             ),
             LayerSummary(
                 name="API Gateway",
                 tech=f"{primary_lang} / FastAPI",
-                files=max(layer_files["API Gateway"], 1),
-                status="Active",
+                files=layer_files["API Gateway"],
+                status="Active" if layer_files["API Gateway"] > 0 else "Not Detected",
             ),
             LayerSummary(
                 name="Core Services",
                 tech=f"{primary_lang} Services",
-                files=max(layer_files["Core Services"], 1),
-                status="Analyzed",
+                files=layer_files["Core Services"],
+                status="Analyzed" if layer_files["Core Services"] > 0 else "Not Detected",
             ),
             LayerSummary(
                 name="Database",
                 tech="SQLAlchemy / SQL Models",
-                files=max(layer_files["Database"], 1),
-                status="Verified",
+                files=layer_files["Database"],
+                status="Verified" if layer_files["Database"] > 0 else "Not Detected",
             ),
         ]
 
         metrics = RepositoryMetrics(
             filesCount=len(relative_files),
             modulesCount=max(len(modules_set), 1),
-            testsCount=max(test_funcs_count, test_files * 3 if test_files > 0 else 0),
+            testsCount=test_funcs_count if test_funcs_count > 0 else test_files,
             findingsCount=0,  # Will be populated after health service runs
             findingsBreakdown=FindingsBreakdown(high=0, medium=0, low=0),
             codeLines=total_lines,
-            testCoverage=f"{min(92.0, max(68.0, 70.0 + (test_files * 4.5))):.1f}%" if test_files > 0 else "N/A",
-            dependenciesCount=max(dependencies_count, 12),
+            testCoverage="Not Available (Static AST Mode)" if test_files > 0 else "Not Available (0 test files)",
+            dependenciesCount=dependencies_count,
         )
 
         return {
             "relative_files": relative_files,
             "primary_language": primary_lang,
             "secondary_language": secondary_lang,
+            "languages": code_languages,
             "metrics": metrics,
             "layers": layers,
         }
@@ -174,16 +210,22 @@ class ScannerService:
         """Parses dependency file to count third-party dependencies."""
         try:
             content = manifest_file.read_text(encoding="utf-8", errors="ignore")
-            if manifest_file.name.lower() == "requirements.txt":
+            fname = manifest_file.name.lower()
+            if fname == "requirements.txt":
                 lines = [
                     line.strip()
                     for line in content.splitlines()
                     if line.strip() and not line.strip().startswith("#") and not line.strip().startswith("-")
                 ]
                 return len(lines)
-            elif manifest_file.name.lower() == "package.json":
-                # Match dependencies / devDependencies keys roughly
+            elif fname == "package.json":
                 return len(re.findall(r'"[^"]+"\s*:\s*"\^?[0-9]', content))
+            elif fname == "pyproject.toml":
+                return len(re.findall(r'^[a-zA-Z0-9_\-]+(?:\s*>=|\s*==|\s*=)', content, re.MULTILINE))
+            elif fname == "go.mod":
+                return len(re.findall(r'^\s+[a-zA-Z0-9_\-./]+\s+v[0-9]', content, re.MULTILINE))
+            elif fname == "cargo.toml":
+                return len(re.findall(r'^[a-zA-Z0-9_\-]+\s*=\s*"', content, re.MULTILINE))
         except Exception:
             pass
         return 0

@@ -16,10 +16,13 @@ def verify_refactor(repo_id: str, payload: VerifyRequest):
     to ensure refactoring introduces zero regressions.
     """
     session = repo_store.get_session(repo_id)
+    ws_path = getattr(session, "workspace_path", None) if session else None
 
     result = verification_service.verify_refactoring(
         refactor_id=payload.refactor_id or "REF-ORDER-01",
         test_filter=payload.test_filter,
+        workspace_path=ws_path,
+        session=session,
     )
 
     if session:

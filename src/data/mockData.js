@@ -12,6 +12,12 @@ export const REPOSITORY_DATA = {
   commit: "8f4a9b2",
   primaryLanguage: "Python 3.11",
   secondaryLanguage: "FastAPI / TypeScript",
+  languages: [
+    { name: "Python", percentage: 54.5, filesCount: 56, linesCount: 6800, supportLevel: "Full AST", capabilities: { detection: true, ast: true, dependencies: true, impact: true, risk: true, health: true, refactor: true, verification: true } },
+    { name: "TypeScript", percentage: 31.2, filesCount: 48, linesCount: 3900, supportLevel: "Full AST", capabilities: { detection: true, ast: true, dependencies: true, impact: true, risk: true, health: true, refactor: true, verification: true } },
+    { name: "SQL", percentage: 10.3, filesCount: 21, linesCount: 1280, supportLevel: "Symbol AST", capabilities: { detection: true, ast: true, dependencies: false, impact: false, risk: true, health: true, refactor: false, verification: false } },
+    { name: "YAML", percentage: 4.0, filesCount: 8, linesCount: 500, supportLevel: "Detection Only", capabilities: { detection: true, ast: false, dependencies: false, impact: false, risk: false, health: false, refactor: false, verification: false } }
+  ],
   lastAnalyzed: "Today at 18:32 UTC",
   analysisDuration: "14.2s",
   status: "Analyzed",

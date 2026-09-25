@@ -97,10 +97,10 @@ class CodeIntelligenceService:
         else:
             risk_clause = "Static analysis identified zero critical architectural hazards"
 
-        if is_demo or "student" in repo_name.lower():
+        if is_demo or "demo" in repo_name.lower() or "student" in repo_name.lower():
             return (
                 f"RepoMind analyzed '{repo_name}' as a {arch_type} built primarily with {lang_str}. "
-                f"The repository spans {file_count} files (~{code_lines:,} lines of code) across frontend capture, "
+                f"The repository spans {file_count} files (~{code_lines:,} lines of code) across client interfaces, "
                 f"API ingress, and service orchestrations. The runtime pipeline {db_str}, with distinct separation "
                 f"between active writes and dormant client configurations. {risk_clause}."
             )

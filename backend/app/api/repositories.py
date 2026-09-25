@@ -65,13 +65,14 @@ def analyze_repository(payload: AnalyzeRequest):
         metrics = scan_res["metrics"]
         layers = scan_res["layers"]
 
-        # 3. Parse AST for Python files
+        # 3. Parse AST / Symbols for polyglot source files
         ast_data_by_file = {}
         for rel_file in relative_files:
-            if rel_file.suffix == ".py":
-                rel_str = str(rel_file).replace("\\", "/")
-                abs_file = ws.path / rel_file
-                ast_data_by_file[rel_str] = ast_service.parse_python_file(abs_file, rel_str)
+            rel_str = str(rel_file).replace("\\", "/")
+            abs_file = ws.path / rel_file
+            parsed_data = ast_service.parse_source_file(abs_file, rel_str)
+            if parsed_data:
+                ast_data_by_file[rel_str] = parsed_data
 
         # 4. Deterministic Code Health Analysis
         findings = health_service.analyze_repository(ws.path, relative_files, ast_data_by_file)
@@ -108,6 +109,7 @@ def analyze_repository(payload: AnalyzeRequest):
             commit=meta["commit"],
             primaryLanguage=scan_res["primary_language"],
             secondaryLanguage=scan_res["secondary_language"],
+            languages=scan_res.get("languages", []),
             lastAnalyzed=now_str,
             analysisDuration=elapsed_str,
             status="Analyzed",
