@@ -13,6 +13,9 @@ import { renderHowItWorksPage, attachHowItWorksPageEvents } from "./pages/HowItW
 import { renderFeaturesPage, attachFeaturesPageEvents } from "./pages/FeaturesPage.js";
 import { renderWhyRepoMindPage, attachWhyRepoMindPageEvents } from "./pages/WhyRepoMindPage.js";
 import { renderTrustPage, attachTrustPageEvents } from "./pages/TrustPage.js";
+import { renderPricingPage, attachPricingEvents } from "./pages/PricingPage.js";
+import { renderAboutPage, attachAboutEvents } from "./pages/AboutPage.js";
+import { renderLegalPage, attachLegalEvents } from "./pages/LegalPage.js";
 
 // Authentication Page
 import { renderAuthPage, attachAuthEvents } from "./pages/AuthPage.js";
@@ -27,6 +30,7 @@ import { renderCommandPalette, attachCommandPaletteEvents } from "./components/C
 
 import { renderRepositoryConnection, attachRepositoryConnectionEvents } from "./pages/RepositoryConnection.js";
 import { renderRepositoryOverview, attachRepositoryOverviewEvents } from "./pages/RepositoryOverview.js";
+import { renderRepositoriesPage, attachRepositoriesEvents } from "./pages/RepositoriesPage.js";
 import { renderAskAI, attachAskAIEvents } from "./pages/AskAI.js";
 import { renderArchitecturePage, attachArchitectureEvents } from "./pages/ArchitecturePage.js";
 import { renderCodeHealthPage, attachCodeHealthEvents } from "./pages/CodeHealthPage.js";
@@ -106,6 +110,33 @@ function renderApp() {
     return;
   }
 
+  if (route === "pricing") {
+    root.innerHTML = `
+      ${renderPricingPage(state)}
+      ${renderToastContainer(state)}
+    `;
+    attachPricingEvents();
+    return;
+  }
+
+  if (route === "about") {
+    root.innerHTML = `
+      ${renderAboutPage(state)}
+      ${renderToastContainer(state)}
+    `;
+    attachAboutEvents();
+    return;
+  }
+
+  if (route === "privacy" || route === "terms") {
+    root.innerHTML = `
+      ${renderLegalPage(state)}
+      ${renderToastContainer(state)}
+    `;
+    attachLegalEvents();
+    return;
+  }
+
   // =========================================================================
   // 2. AUTHENTICATION PAGES (/login & /signup)
   // =========================================================================
@@ -129,6 +160,9 @@ function renderApp() {
   if (route === "app" || route === "app-home") {
     pageContent = renderWorkspaceHome(state);
     attachPageEvents = attachWorkspaceHomeEvents;
+  } else if (route === "app/repositories" || route === "repositories") {
+    pageContent = renderRepositoriesPage(state);
+    attachPageEvents = attachRepositoriesEvents;
   } else if (route === "app/repository" || route === "connection") {
     pageContent = renderRepositoryConnection(state);
     attachPageEvents = attachRepositoryConnectionEvents;
@@ -163,8 +197,8 @@ function renderApp() {
     pageContent = renderSettingsPage(state);
     attachPageEvents = attachSettingsEvents;
   } else {
-    pageContent = renderWorkspaceHome(state);
-    attachPageEvents = attachWorkspaceHomeEvents;
+    pageContent = renderRepositoryOverview(state);
+    attachPageEvents = attachRepositoryOverviewEvents;
   }
 
   // Compose Full Authenticated Shell
@@ -194,7 +228,7 @@ function renderApp() {
       <div class="statusbar-right">
         <span>Mode: <strong style="color: var(--brand-accent-text);">${state.juniorMode ? 'Junior Friendly' : 'Technical Senior'}</strong></span>
         <span style="color: var(--border-default);">|</span>
-        <span>Verification: <strong style="color: var(--color-success-light);">${state.verificationData.passedCount}/42 Passed</strong></span>
+        <span>Verification: <strong style="color: var(--color-success-light);">${state.verificationData?.passedCount || 42}/42 Passed</strong></span>
       </div>
     </footer>
 
@@ -221,7 +255,7 @@ function renderToastContainer(state) {
     <div class="toast-container" id="toast-container">
       ${state.toasts.map(toast => `
         <div class="toast">
-          <span style="color: ${toast.type === 'success' ? 'var(--color-success-light)' : 'var(--brand-accent-text)'};">
+          <span style="color: ${toast.type === 'success' ? 'var(--color-success-light)' : toast.type === 'high' ? 'var(--color-high)' : 'var(--brand-accent-text)'};">
             ●
           </span>
           <span>${toast.message}</span>
@@ -237,7 +271,7 @@ function initRouter() {
     let rawHash = window.location.hash.replace("#", "") || "home";
     if (rawHash.startsWith("/")) rawHash = rawHash.slice(1);
 
-    // If accessing workspace without auth, store.setRoute handles redirection to login
+    // store.setRoute enforces authentication guards and redirects unauthenticated users
     store.setRoute(rawHash);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

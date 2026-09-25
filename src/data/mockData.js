@@ -1,13 +1,13 @@
 /**
  * RepoMind Mock Data Layer
- * Realistic engineering data for university-sys/student-management-system.
+ * Realistic engineering data for koteswararaoderangula534-creator/repomind.
  * Completely decoupled from the UI components for easy REST/GraphQL API integration.
  */
 
 export const REPOSITORY_DATA = {
-  id: "repo-student-mgmt",
-  name: "university-sys/student-management-system",
-  url: "https://github.com/university-sys/student-management-system",
+  id: "repo-event-mgmt",
+  name: "koteswararaoderangula534-creator/repomind",
+  url: "https://github.com/koteswararaoderangula534-creator/repomind",
   branch: "main",
   commit: "8f4a9b2",
   primaryLanguage: "Python 3.11",
@@ -40,14 +40,14 @@ export const REPOSITORY_DATA = {
     confidence: 0.94,
     signals: ["React / TypeScript Frontend", "FastAPI Ingress Routes", "MongoDB Data Pipeline"]
   },
-  aiSummary: "RepoMind analyzed 'university-sys/student-management-system' as a full-stack application built with Python 3.11 and TypeScript. The codebase spans 147 files (~12,480 lines of code) across frontend camera capture, FastAPI ingress, and backend service orchestrations. Forensic database tracing detected dual data stores: MongoDB is the active runtime write target, while Supabase clients remain dormant. The AST engine identified 2 high-severity risks including an un-fenced concurrency race condition and historical session data truncation.",
+  aiSummary: "RepoMind analyzed 'koteswararaoderangula534-creator/repomind' as a full-stack application built with Python 3.11 and TypeScript. The codebase spans 147 files (~12,480 lines of code) across frontend camera capture, FastAPI ingress, and backend service orchestrations. Forensic database tracing detected dual data stores: MongoDB is the active runtime write target, while Supabase clients remain dormant. The AST engine identified 2 high-severity risks including an un-fenced concurrency race condition and historical session data truncation.",
   semanticGroups: [
     { domain: "Authentication & Security", fileCount: 14, description: "Token verification, RBAC permissions, and session credentials." },
     { domain: "API Gateway & Ingress", fileCount: 22, description: "FastAPI route controllers, query endpoints, and request validations." },
-    { domain: "Core Business Logic", fileCount: 56, description: "Attendance tracking, student enrollment, grading, and batch jobs." },
+    { domain: "Core Business Logic", fileCount: 56, description: "Session lifecycle, event dispatching, transaction processing, and workers." },
     { domain: "Data Persistence & ORM", fileCount: 21, description: "MongoDB collections, PyMongo write pipelines, and Supabase client stubs." },
-    { domain: "User Interface & Components", fileCount: 48, description: "React camera capture views, telemetry panels, and student rosters." },
-    { domain: "Test Suite & Verification", fileCount: 18, description: "Pytest suites covering auth authorization, attendance, and concurrency." }
+    { domain: "User Interface & Components", fileCount: 48, description: "Developer consoles, telemetry panels, and session audit streams." },
+    { domain: "Test Suite & Verification", fileCount: 18, description: "Pytest suites covering auth authorization, session mutations, and concurrency." }
   ],
   technologies: ["Python 3.11", "FastAPI", "React", "TypeScript", "MongoDB", "Supabase", "Pytest", "Uvicorn"],
   databasesDetected: ["MongoDB (Active Write Target)", "Supabase (Dormant Client)"]
@@ -69,7 +69,7 @@ export const CODE_HEALTH_FINDINGS = [
     suggestedRefactorId: "REF-001",
     impactEntity: "SECRET_KEY",
     codeSnippet: `25: class Settings(BaseSettings):
-26:     APP_NAME: str = "StudentManagementAPI"
+26:     APP_NAME: str = "RepoMindAPI"
 27:     SECRET_KEY: str = "d948a73f9104b2e811c038290fbb62a1"  # RISK: hardcoded
 28:     ALGORITHM: str = "HS256"
 29:     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60`
@@ -78,19 +78,19 @@ export const CODE_HEALTH_FINDINGS = [
     id: "FND-002",
     severity: "HIGH",
     rule: "SEC-004",
-    title: "SQL Injection Risk in Student Query",
+    title: "SQL Injection Risk in Session Query",
     description: "Raw formatted SQL query using f-strings inside cursor execution bypasses parameter sanitization.",
     juniorDescription: "User input is directly inserted into a database query. If someone puts malicious commands into their search, the database might execute them. Using prepared parameters fixes this.",
-    file: "services/student_service.py",
+    file: "services/event_service.py",
     line: 114,
-    module: "StudentService",
+    module: "EventService",
     status: "Open",
     category: "Security",
     suggestedRefactorId: null,
-    impactEntity: "search_students_raw",
-    codeSnippet: `112: def search_students_raw(db, query: str):
+    impactEntity: "search_sessions_raw",
+    codeSnippet: `112: def search_sessions_raw(db, query: str):
 113:     cursor = db.cursor()
-114:     sql = f"SELECT * FROM students WHERE name LIKE '%{query}%'"
+114:     sql = f"SELECT * FROM sessions WHERE tag LIKE '%{query}%'"
 115:     cursor.execute(sql)
 116:     return cursor.fetchall()`
   },
@@ -126,17 +126,17 @@ export const CODE_HEALTH_FINDINGS = [
     title: "Direct DB Access in Route Handler",
     description: "Route handler directly invokes SQLAlchemy session query instead of delegating through enrollment service layer.",
     juniorDescription: "The web route is talking directly to the database instead of asking the service layer. Keeping database logic in service files prevents messy duplication across routes.",
-    file: "api/routes/enrollment.py",
+    file: "api/routes/sessions.py",
     line: 42,
     module: "APIRoutes",
     status: "Open",
     category: "Architecture",
     suggestedRefactorId: null,
-    impactEntity: "enroll_student_endpoint",
+    impactEntity: "register_session_endpoint",
     codeSnippet: `41: @router.post("/enroll")
-42: def enroll_student(payload: EnrollSchema, db: Session = Depends(get_db)):
+42: def register_session(payload: EnrollSchema, db: Session = Depends(get_db)):
 43:     # Bypassing service layer:
-44:     record = db.query(Enrollment).filter_by(student_id=payload.student_id).first()`
+44:     record = db.query(Enrollment).filter_by(session_id=payload.session_id).first()`
   },
   {
     id: "FND-005",
@@ -200,13 +200,13 @@ export const CODE_HEALTH_FINDINGS = [
     title: "Deprecated Pydantic v1 Syntax",
     description: "Models still utilize .dict() serialization method deprecated in Pydantic v2 in favor of model_dump().",
     juniorDescription: "The code is using an older way to turn data models into dictionaries. Upgrading to model_dump() prevents crashes when updating dependencies.",
-    file: "models/student.py",
+    file: "models/session.py",
     line: 15,
     module: "DataModels",
     status: "Open",
     category: "Outdated Patterns",
     suggestedRefactorId: null,
-    impactEntity: "StudentResponseModel",
+    impactEntity: "SessionResponseModel",
     codeSnippet: `14: def to_dict(self):
 15:     return self.dict(exclude={"hashed_password"})`
   },
@@ -234,7 +234,7 @@ export const CODE_HEALTH_FINDINGS = [
     severity: "LOW",
     rule: "CLN-002",
     title: "Magic Number in Payment Calculation",
-    description: "Numeric literal 0.85 used for early bird student discount without named constant.",
+    description: "Numeric literal 0.85 used for enterprise tier discount without named constant.",
     juniorDescription: "The number 0.85 is written directly inside a formula. It's better to give it a clear name like EARLY_BIRD_DISCOUNT_RATE so everyone knows what it means.",
     file: "services/billing_service.py",
     line: 58,
@@ -362,13 +362,13 @@ export const ASK_AI_SAMPLE_QUERIES = [
     id: "q-arch",
     query: "Explain the repository architecture.",
     category: "System Architecture",
-    technicalExplanation: "RepoMind AST parsing identified a tiered full-stack architecture organized into 4 functional layers: 1) Client UI (React/TypeScript single-page app and CameraCapture components); 2) API Gateway (FastAPI router with Uvicorn server exposing REST endpoints); 3) Core Business Services (Attendance, Auth, Orders, Grading, and Notification workers); 4) Data Persistence (Active MongoDB document store with dormant Supabase and relational PostgreSQL models).",
+    technicalExplanation: "RepoMind AST parsing identified a tiered full-stack architecture organized into 4 functional layers: 1) Client UI (React/TypeScript single-page app and CameraCapture components); 2) API Gateway (FastAPI router with Uvicorn server exposing REST endpoints); 3) Core Business Services (Events, Auth, Orders, Billing, and Notification workers); 4) Data Persistence (Active MongoDB document store with dormant Supabase and relational PostgreSQL models).",
     juniorExplanation: "This project is built like a 4-floor office building: The lobby (React frontend) takes requests from users, the security gate (FastAPI) checks who is allowed in, the office departments (Python services) do the real work, and the filing room (MongoDB) stores all the records.",
     flowSteps: [
       { name: "React Frontend", role: "Client UI", action: "User interaction & camera telemetry" },
       { name: "FastAPI Ingress", role: "API Gateway", action: "Validates JSON payloads & handles CORS" },
       { name: "Core Services", role: "Domain Logic", action: "Calculates grades, checks rules, runs jobs" },
-      { name: "MongoDB Storage", role: "Active Database", action: "Stores attendance and student documents" }
+      { name: "MongoDB Storage", role: "Active Database", action: "Stores session records and event documents" }
     ],
     sources: [
       { file: "backend/app/main.py", lines: "1–35", func: "app", fullSnippet: `1: from fastapi import FastAPI
@@ -378,30 +378,30 @@ export const ASK_AI_SAMPLE_QUERIES = [
 9: SessionLocal = sessionmaker(bind=engine)` }
     ],
     affectedEntities: ["FastAPI Application", "Layer Boundaries", "Dependency Graph"],
-    riskAssessment: "Clean overall architectural separation; 1 direct database access leak detected in api/routes/enrollment.py:42."
+    riskAssessment: "Clean overall architectural separation; 1 direct database access leak detected in api/routes/sessions.py:42."
   },
   {
     id: "q-risks",
     query: "What are the highest-risk areas?",
     category: "Risk Detection",
-    technicalExplanation: "Static analysis and forensic AST inspection identified 2 CRITICAL and 2 HIGH risk areas: 1) services/attendance_service.py:112: Historical Data Truncation from using find_one() on multi-session records; 2) services/attendance_service.py:78: Concurrency Race Hazard from un-fenced $push array mutations; 3) config.py:27: Hardcoded JWT secret key; 4) orders.py:84: Monolithic 84-line function tightly coupling Stripe charges with database persistence.",
-    juniorExplanation: "The two biggest dangers in the project are: 1) A line of code that accidentally hides past attendance records because it only looks at the first page of results; 2) Two people marking attendance at the exact same moment causing one to overwrite the other because there's no waiting line!",
+    technicalExplanation: "Static analysis and forensic AST inspection identified 2 CRITICAL and 2 HIGH risk areas: 1) services/session_service.py:112: Historical Data Truncation from using find_one() on multi-session records; 2) services/session_service.py:78: Concurrency Race Hazard from un-fenced $push array mutations; 3) config.py:27: Hardcoded JWT secret key; 4) orders.py:84: Monolithic 84-line function tightly coupling Stripe charges with database persistence.",
+    juniorExplanation: "The two biggest dangers in the project are: 1) A line of code that accidentally hides past session_event records because it only looks at the first page of results; 2) Two people marking session_event at the exact same moment causing one to overwrite the other because there's no waiting line!",
     flowSteps: [
-      { name: "attendance_service.py:112", role: "Query Truncation", action: "find_one() omits prior records" },
-      { name: "attendance_service.py:78", role: "Race Condition", action: "$push executes without version lock" },
+      { name: "session_service.py:112", role: "Query Truncation", action: "find_one() omits prior records" },
+      { name: "session_service.py:78", role: "Race Condition", action: "$push executes without version lock" },
       { name: "config.py:27", role: "Secret Leak", action: "Hardcoded cryptographic key in repo" },
       { name: "orders.py:84", role: "Monolith", action: "Violates Single Responsibility Principle" }
     ],
     sources: [
-      { file: "services/attendance_service.py", lines: "112–115", func: "get_student_attendance_summary", fullSnippet: `112: record = await db.attendance.find_one({"student_id": student_id})
+      { file: "services/session_service.py", lines: "112–115", func: "get_session_summary", fullSnippet: `112: record = await db.session_records.find_one({"session_id": session_id})
 113: return {"sessions": record.get("sessions", [])}` },
-      { file: "services/attendance_service.py", lines: "77–80", func: "record_attendance_session", fullSnippet: `77: result = await db.attendance.update_one(
-78:     {"student_id": student_id},
+      { file: "services/session_service.py", lines: "77–80", func: "record_session_event", fullSnippet: `77: result = await db.session_records.update_one(
+78:     {"session_id": session_id},
 79:     {"$push": {"sessions": session_data}}
 80: )` }
     ],
     affectedEntities: ["Data Integrity", "Concurrency Pipeline", "Application Secrets"],
-    riskAssessment: "HIGH PRIORITY: Fix query truncation and add version check (__v) to attendance array push."
+    riskAssessment: "HIGH PRIORITY: Fix query truncation and add version check (__v) to event stream array push."
   },
   {
     id: "q-refactor",
@@ -428,20 +428,20 @@ export const ASK_AI_SAMPLE_QUERIES = [
     id: "q-flow",
     query: "How does data flow through this application?",
     category: "Data Flow Lineage",
-    technicalExplanation: "Data flows through an end-to-end pipeline: 1) CameraCapture.tsx captures student attendance telemetry and dispatches a JSON POST payload; 2) FastAPI route handler at api/routes/attendance.py intercepts the request and performs schema validation; 3) The request delegates to services/attendance_service.py; 4) The service executes an asynchronous update to the active MongoDB attendance collection; 5) A response confirmation returns to the React dashboard.",
-    juniorExplanation: "Think of it like ordering pizza: The website (frontend) sends your order, the front desk (FastAPI route) checks that your address is real, the kitchen (attendance service) prepares the food, and the storage pantry (MongoDB) saves the receipt!",
+    technicalExplanation: "Data flows through an end-to-end pipeline: 1) EventIngress.tsx captures event payload session_event telemetry and dispatches a JSON POST payload; 2) FastAPI route handler at api/routes/events.py intercepts the request and performs schema validation; 3) The request delegates to services/session_service.py; 4) The service executes an asynchronous update to the active MongoDB session_event collection; 5) A response confirmation returns to the React dashboard.",
+    juniorExplanation: "Think of it like ordering pizza: The website (frontend) sends your order, the front desk (FastAPI route) checks that your address is real, the kitchen (session_event service) prepares the food, and the storage pantry (MongoDB) saves the receipt!",
     flowSteps: [
-      { name: "CameraCapture.tsx", role: "Frontend UI", action: "Captures face token & dispatches POST" },
-      { name: "api/routes/attendance.py", role: "API Gateway", action: "Validates schema & headers" },
-      { name: "attendance_service.py", role: "Service Logic", action: "Prepares session document" },
-      { name: "MongoDB", role: "Persistence", action: "Writes document to attendance collection" }
+      { name: "EventIngress.tsx", role: "Frontend UI", action: "Captures face token & dispatches POST" },
+      { name: "api/routes/events.py", role: "API Gateway", action: "Validates schema & headers" },
+      { name: "session_service.py", role: "Service Logic", action: "Prepares session document" },
+      { name: "MongoDB", role: "Persistence", action: "Writes document to session_event collection" }
     ],
     sources: [
-      { file: "src/components/CameraCapture.tsx", lines: "45–60", func: "submitAttendance", fullSnippet: `45: const submitAttendance = async (token: string) => {
-46:   await fetch('/api/attendance', { method: 'POST', body: JSON.stringify({ token }) });
+      { file: "src/components/EventIngress.tsx", lines: "45–60", func: "submitEvent", fullSnippet: `45: const submitEvent = async (token: string) => {
+46:   await fetch('/api/events', { method: 'POST', body: JSON.stringify({ token }) });
 47: };` },
-      { file: "services/attendance_service.py", lines: "77–80", func: "record_attendance_session", fullSnippet: `77: result = await db.attendance.update_one(
-78:     {"student_id": student_id},
+      { file: "services/session_service.py", lines: "77–80", func: "record_session_event", fullSnippet: `77: result = await db.session_records.update_one(
+78:     {"session_id": session_id},
 79:     {"$push": {"sessions": session_data}}
 80: )` }
     ],
@@ -453,7 +453,7 @@ export const ASK_AI_SAMPLE_QUERIES = [
     query: "How does the order and payment flow work?",
     category: "Business Logic",
     technicalExplanation: "Order submission initiates at orders.py via process_order(). The function verifies item availability, initiates an external payment gateway call to Stripe, commits the order invoice to PostgreSQL, and invokes notification_worker to asynchronously dispatch confirmation emails.",
-    juniorExplanation: "When a student pays for a course or lab fee, the app checks if the class has space, charges their payment card, saves the receipt in the database, and sends an email receipt.",
+    juniorExplanation: "When a event pays for a course or lab fee, the app checks if the class has space, charges their payment card, saves the receipt in the database, and sends an email receipt.",
     flowSteps: [
       { name: "api/routes/orders.py", role: "API Endpoint", action: "Accepts checkout payload" },
       { name: "orders.py:process_order", role: "Monolithic Controller", action: "Validates, charges, saves, emails" },
@@ -473,17 +473,17 @@ export const ASK_AI_SAMPLE_QUERIES = [
     id: "q-db",
     query: "What services talk directly to the database?",
     category: "Data Architecture",
-    technicalExplanation: "The database layer is managed through SQLAlchemy models in models/. Direct session access is concentrated in services/student_service.py, services/course_service.py, services/billing_service.py, and auth_service.py. A structural leak exists in api/routes/enrollment.py which queries the DB directly.",
+    technicalExplanation: "The database layer is managed through SQLAlchemy models in models/. Direct session access is concentrated in services/event_service.py, services/course_service.py, services/billing_service.py, and auth_service.py. A structural leak exists in api/routes/sessions.py which queries the DB directly.",
     juniorExplanation: "Most parts of the system go through specific helper services to reach the database, which is good practice. However, one web page route in enrollment.py cheats and talks directly to the database without going through the helper service.",
     flowSteps: [
       { name: "services/*", role: "Authorized Services", action: "Read/Write queries via ORM" },
-      { name: "api/routes/enrollment.py", role: "Architectural Leak", action: "Direct DB query bypassing service" },
+      { name: "api/routes/sessions.py", role: "Architectural Leak", action: "Direct DB query bypassing service" },
       { name: "database.py", role: "Connection Pool", action: "Manages PostgreSQL engine & pool (size=20)" }
     ],
     sources: [
       { file: "database.py", lines: "8–24", func: "get_db", fullSnippet: `8: engine = create_engine(DATABASE_URL, pool_size=20, max_overflow=0)
 9: SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)` },
-      { file: "api/routes/enrollment.py", lines: "42–48", func: "enroll_student", fullSnippet: `42: record = db.query(Enrollment).filter_by(student_id=payload.student_id).first()` }
+      { file: "api/routes/sessions.py", lines: "42–48", func: "register_session", fullSnippet: `42: record = db.query(Enrollment).filter_by(session_id=payload.session_id).first()` }
     ],
     affectedEntities: ["PostgreSQL Session", "Connection Pool", "ORM Entities"],
     riskAssessment: "Medium architectural risk due to direct query leaks in route handlers."
@@ -492,57 +492,57 @@ export const ASK_AI_SAMPLE_QUERIES = [
     id: "q-disappear",
     query: "Why might this data disappear?",
     category: "Data Integrity Forensic",
-    technicalExplanation: "The AST parser detected a single-record query method `find_one()` executing against the multi-session collection in services/attendance_service.py:112. When a student accumulates multiple attendance events over time, `find_one()` returns only the first document matched by the index cursor. All subsequent sessions are silently omitted from the API response payload, creating the observable illusion that prior attendance data has vanished or been deleted.",
-    juniorExplanation: "Imagine taking roll call by looking only at the very first line of yesterday's sign-in sheet. Even if the student came to class 10 times, the computer only checks line 1 and ignores the rest! The data isn't deleted, but the code is looking with blinders on.",
+    technicalExplanation: "The AST parser detected a single-record query method `find_one()` executing against the multi-session collection in services/session_service.py:112. When a event accumulates multiple session_event events over time, `find_one()` returns only the first document matched by the index cursor. All subsequent sessions are silently omitted from the API response payload, creating the observable illusion that prior session_event data has vanished or been deleted.",
+    juniorExplanation: "Imagine taking audit history by reading only the very first line of a multi-record log file. Even if 100 events were recorded, the query retrieves line 1 and ignores the rest! The data isn't deleted, but the code is looking with blinders on.",
     flowSteps: [
-      { name: "CameraCapture.tsx", role: "Frontend UI", action: "Captures face token & sends POST request" },
-      { name: "api/routes/attendance.py", role: "API Gateway", action: "Validates session payload" },
-      { name: "services/attendance_service.py", role: "Service Logic", action: "Calls db.attendance.find_one() [TRUNCATION HAZARD]" },
+      { name: "EventIngress.tsx", role: "Frontend UI", action: "Captures face token & sends POST request" },
+      { name: "api/routes/events.py", role: "API Gateway", action: "Validates session payload" },
+      { name: "services/session_service.py", role: "Service Logic", action: "Calls db.session_records.find_one() [TRUNCATION HAZARD]" },
       { name: "MongoDB", role: "Active Store", action: "Returns only 1 document despite multi-record collection" }
     ],
     sources: [
-      { file: "services/attendance_service.py", lines: "112–115", func: "get_student_attendance_summary", fullSnippet: `112: record = await db.attendance.find_one({"student_id": student_id})
+      { file: "services/session_service.py", lines: "112–115", func: "get_session_summary", fullSnippet: `112: record = await db.session_records.find_one({"session_id": session_id})
 113: if not record:
 114:     return {"sessions": []}
 115: return {"sessions": record.get("sessions", [])}` }
     ],
-    affectedEntities: ["attendance_collection", "session_records", "attendance_summary_view"],
-    riskAssessment: "CRITICAL DATA TRUNCATION: Replace find_one() with db.attendance.find() and aggregate session arrays across all documents."
+    affectedEntities: ["session_collection", "session_records", "session_summary_view"],
+    riskAssessment: "CRITICAL DATA TRUNCATION: Replace find_one() with db.session_records.find() and aggregate session arrays across all documents."
   },
   {
     id: "q-concurrency",
-    query: "What happens when two users take attendance simultaneously?",
+    query: "What happens when two users record events simultaneously?",
     category: "Concurrency Hazard Forensic",
-    technicalExplanation: "When two camera inputs or concurrent users send attendance submissions at timestamp t_0, both execute services/attendance_service.py:78 concurrently. The operation uses an un-fenced MongoDB $push update without versioning, document locking, or etag checks. If the underlying document is fetched, modified, and saved concurrently, one of the two session updates will be silently overwritten by the slower write, causing permanent event loss without generating a database error.",
-    juniorExplanation: "Imagine two teachers writing in the exact same paper logbook at the exact same second. Teacher A reads page 1, Teacher B reads page 1. Teacher A writes their note and closes the book. Then Teacher B writes their note on their copy and closes the book, erasing Teacher A's note! There is no waiting line (lock) to prevent them from stepping on each other.",
+    technicalExplanation: "When two camera inputs or concurrent users send event submissions at timestamp t_0, both execute services/session_service.py:78 concurrently. The operation uses an un-fenced MongoDB $push update without versioning, document locking, or etag checks. If the underlying document is fetched, modified, and saved concurrently, one of the two session updates will be silently overwritten by the slower write, causing permanent event loss without generating a database error.",
+    juniorExplanation: "Imagine two server threads updating the exact same document without a mutex lock at the exact same second. Teacher A reads page 1, Teacher B reads page 1. Teacher A writes their note and closes the book. Then Teacher B writes their note on their copy and closes the book, erasing Teacher A's note! There is no waiting line (lock) to prevent them from stepping on each other.",
     flowSteps: [
-      { name: "Camera 1 & Camera 2", role: "Concurrent Ingress", action: "Submit attendance tokens simultaneously at t0" },
-      { name: "api/routes/attendance.py", role: "Async Gateway", action: "Spawns 2 concurrent coroutines" },
-      { name: "services/attendance_service.py:78", role: "Unsynchronized Push", action: "Executes $push array mutation without version fence" },
+      { name: "Worker Ingress A & Ingress B", role: "Concurrent Ingress", action: "Submit event tokens simultaneously at t0" },
+      { name: "api/routes/events.py", role: "Async Gateway", action: "Spawns 2 concurrent coroutines" },
+      { name: "services/session_service.py:78", role: "Unsynchronized Push", action: "Executes $push array mutation without version fence" },
       { name: "MongoDB", role: "Collision Store", action: "Race condition occurs; slower write clobbers faster update" }
     ],
     sources: [
-      { file: "services/attendance_service.py", lines: "75–82", func: "record_attendance_session", fullSnippet: `75: async def record_attendance_session(student_id: str, session_data: dict):
+      { file: "services/session_service.py", lines: "75–82", func: "record_session_event", fullSnippet: `75: async def record_session_event(session_id: str, session_data: dict):
 76:     # HAZARD: Un-fenced $push without version increment or optimistic lock
-77:     result = await db.attendance.update_one(
-78:         {"student_id": student_id},
+77:     result = await db.session_records.update_one(
+78:         {"session_id": session_id},
 79:         {"$push": {"sessions": session_data}}
 80:     )
 81:     return result.modified_count > 0` }
     ],
-    affectedEntities: ["attendance.sessions", "optimistic_lock_version", "session_timeline"],
+    affectedEntities: ["session_records.events", "optimistic_lock_version", "session_timeline"],
     riskAssessment: "CRITICAL CONCURRENCY HAZARD: Introduce optimistic lock field (__v) with conditional match or use atomic distributed locks."
   },
   {
     id: "q-supabase",
     query: "Where is data written and why is Supabase dormant?",
     category: "Database Forensic Distinction",
-    technicalExplanation: "RepoMind AST analysis verified that 100% of runtime data persistence operations execute against MongoDB via PyMongo/Motor in services/attendance_service.py and services/student_service.py. Conversely, Supabase client initialization exists in config.py:18, but cross-referencing all 147 files revealed ZERO write, read, or query operations invoking the Supabase client. Additionally, SUPABASE_KEY is null in environment variables, confirming Supabase is a dormant, abandoned client.",
+    technicalExplanation: "RepoMind AST analysis verified that 100% of runtime data persistence operations execute against MongoDB via PyMongo/Motor in services/session_service.py and services/event_service.py. Conversely, Supabase client initialization exists in config.py:18, but cross-referencing all 147 files revealed ZERO write, read, or query operations invoking the Supabase client. Additionally, SUPABASE_KEY is null in environment variables, confirming Supabase is a dormant, abandoned client.",
     juniorExplanation: "The app has two filing cabinets: a big digital one (MongoDB) that gets used all day long, and a fancy new one in the corner (Supabase) that someone bought but never put any keys or files into. All real data lives in MongoDB.",
     flowSteps: [
       { name: "config.py:18", role: "Client Stub", action: "Initializes supabase = create_client(url, key=None)" },
-      { name: "services/attendance_service.py", role: "Active Write Route", action: "All inserts routed to MongoDB attendance collection" },
-      { name: "services/student_service.py", role: "Active Query Route", action: "All lookups routed to MongoDB student collection" },
+      { name: "services/session_service.py", role: "Active Write Route", action: "All inserts routed to MongoDB session_event collection" },
+      { name: "services/event_service.py", role: "Active Query Route", action: "All lookups routed to MongoDB event collection" },
       { name: "Supabase Service", role: "Dormant System", action: "0 reads, 0 writes, 0 active connections" }
     ],
     sources: [
@@ -550,8 +550,8 @@ export const ASK_AI_SAMPLE_QUERIES = [
 16: SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 17: SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 18: supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_KEY else None` },
-      { file: "services/attendance_service.py", lines: "77–80", func: "record_attendance_session", fullSnippet: `77: result = await db.attendance.update_one(
-78:     {"student_id": student_id},
+      { file: "services/session_service.py", lines: "77–80", func: "record_session_event", fullSnippet: `77: result = await db.session_records.update_one(
+78:     {"session_id": session_id},
 79:     {"$push": {"sessions": session_data}}
 80: )` }
     ],
@@ -566,7 +566,7 @@ export const ARCHITECTURE_GRAPH_DATA = {
       id: "layer-client",
       name: "Client Layer",
       nodes: [
-        { id: "node-web", name: "Web Application", type: "frontend", tech: "Next.js 14 / React", port: "3000", description: "Student portal & admin dashboard" },
+        { id: "node-web", name: "Web Application", type: "frontend", tech: "Next.js 14 / React", port: "3000", description: "Engineering portal & telemetry dashboard" },
         { id: "node-cli", name: "Admin CLI Tool", type: "cli", tech: "Python Click", port: "local", description: "Batch enrollment & migration CLI" }
       ]
     },
@@ -583,7 +583,7 @@ export const ARCHITECTURE_GRAPH_DATA = {
       nodes: [
         { id: "node-auth", name: "Auth Service", type: "service", tech: "Python / PyJWT", files: "auth_service.py", description: "Token generation, password hashing, session validation" },
         { id: "node-order", name: "Order & Billing", type: "service", tech: "orders.py / billing.py", files: "orders.py", description: "Tuition processing, invoicing, receipt creation" },
-        { id: "node-student", name: "Student & Enrollment", type: "service", tech: "student_service.py", files: "enrollment.py", description: "Course registrations, grade submissions, GPA calculations" },
+        { id: "node-session", name: "Session & Token Manager", type: "service", tech: "session_service.py", files: "enrollment.py", description: "Course registrations, grade submissions, GPA calculations" },
         { id: "node-notify", name: "Notification Worker", type: "worker", tech: "asyncio worker", files: "notification_worker.py", description: "Email dispatch, socket push events" }
       ]
     },
@@ -591,7 +591,7 @@ export const ARCHITECTURE_GRAPH_DATA = {
       id: "layer-data",
       name: "Persistence & External",
       nodes: [
-        { id: "node-postgres", name: "PostgreSQL 15", type: "database", tech: "Relational DB", port: "5432", description: "Students, courses, enrollments, credentials" },
+        { id: "node-postgres", name: "PostgreSQL 15", type: "database", tech: "Relational DB", port: "5432", description: "Accounts, permissions, audit trails, credentials" },
         { id: "node-redis", name: "Redis Cache", type: "cache", tech: "Redis 7", port: "6379", description: "Session cache, token revocation blacklist" },
         { id: "node-stripe", name: "Stripe API", type: "external", tech: "REST External", port: "443", description: "Payment processing gateway" },
         { id: "node-sendgrid", name: "SendGrid Mailer", type: "external", tech: "SMTP / REST", port: "443", description: "Transactional email notifications" }
@@ -603,14 +603,14 @@ export const ARCHITECTURE_GRAPH_DATA = {
     { from: "node-cli", to: "node-api", protocol: "HTTPS / Token", label: "Admin Operations" },
     { from: "node-api", to: "node-auth", protocol: "Internal Call", label: "Auth Verification" },
     { from: "node-api", to: "node-order", protocol: "Internal Call", label: "Order Submissions" },
-    { from: "node-api", to: "node-student", protocol: "Internal Call", label: "Student Records" },
+    { from: "node-api", to: "node-session", protocol: "Internal Call", label: "Session Tokens" },
     { from: "node-auth", to: "node-postgres", protocol: "SQLAlchemy", label: "User Credentials" },
     { from: "node-auth", to: "node-redis", protocol: "TCP", label: "Session Tokens" },
     { from: "node-order", to: "node-stripe", protocol: "HTTPS TLS", label: "Process Card" },
     { from: "node-order", to: "node-postgres", protocol: "SQLAlchemy", label: "Save Invoices" },
     { from: "node-order", to: "node-notify", protocol: "Task Queue", label: "Queue Email" },
     { from: "node-notify", to: "node-sendgrid", protocol: "SMTP TLS", label: "Send Email" },
-    { from: "node-student", to: "node-postgres", protocol: "SQLAlchemy", label: "Course Queries" }
+    { from: "node-session", to: "node-postgres", protocol: "SQLAlchemy", label: "Registry Queries" }
   ]
 };
 
@@ -857,12 +857,12 @@ export const VERIFICATION_DATA = {
   suites: [
     { name: "tests/test_orders.py", total: 16, passed: 16, failed: 0, duration: "680ms" },
     { name: "tests/test_auth.py", total: 12, passed: 12, failed: 0, duration: "440ms" },
-    { name: "tests/test_student_service.py", total: 8, passed: 8, failed: 0, duration: "380ms" },
+    { name: "tests/test_event_service.py", total: 8, passed: 8, failed: 0, duration: "380ms" },
     { name: "tests/test_billing.py", total: 6, passed: 6, failed: 0, duration: "340ms" }
   ],
   liveLogs: [
     "[pytest] platform win32 -- Python 3.11.8, pytest-8.1.1, pluggy-1.4.0",
-    "[pytest] rootdir: C:/SIH/DK/student-management-system",
+    "[pytest] rootdir: C:/SIH/DK/repomind-core",
     "[pytest] collecting 42 items ... collected 42 items",
     "tests/test_orders.py::test_process_order_success PASSED [ 2%]",
     "tests/test_orders.py::test_empty_cart_raises_error PASSED [ 5%]",
@@ -877,8 +877,8 @@ export const VERIFICATION_DATA = {
 };
 
 export const FORENSIC_REPORT_DATA = {
-  repo_id: "repo-student-mgmt",
-  repo_name: "university-sys/student-management-system",
+  repo_id: "repo-event-mgmt",
+  repo_name: "koteswararaoderangula534-creator/repomind",
   analyzed_at: "Today at 18:32 UTC",
   execution_time_seconds: 1.42,
   databases: [
@@ -889,8 +889,8 @@ export const FORENSIC_REPORT_DATA = {
       detected_in_code: true,
       status: "ACTUALLY USED",
       driver_packages: ["pymongo", "motor"],
-      connection_uris: ["mongodb://admin:<REDACTED>@127.0.0.1:27017/student_mgmt"],
-      evidence: "12 discrete AST database operations detected across service layers (attendance_records, students).",
+      connection_uris: ["mongodb://admin:<REDACTED>@127.0.0.1:27017/event_stream_db"],
+      evidence: "12 discrete AST database operations detected across service layers (session_records, events).",
       classification: "[CODE VERIFIED]"
     },
     {
@@ -900,7 +900,7 @@ export const FORENSIC_REPORT_DATA = {
       detected_in_code: false,
       status: "CONFIGURED BUT UNUSED",
       driver_packages: ["@supabase/supabase-js"],
-      connection_uris: ["https://xyz-university.supabase.co"],
+      connection_uris: ["https://repomind-cloud.supabase.co"],
       evidence: "Detected in environment configuration / parameters, but zero active queries or table operations exist in codebase.",
       classification: "[CONFIG VERIFIED]"
     },
@@ -911,83 +911,83 @@ export const FORENSIC_REPORT_DATA = {
       detected_in_code: false,
       status: "CONFIGURED BUT UNUSED",
       driver_packages: ["psycopg2"],
-      connection_uris: ["postgresql://postgres:<REDACTED>@localhost:5432/students_db"],
+      connection_uris: ["postgresql://postgres:<REDACTED>@localhost:5432/audit_registry_db"],
       evidence: "Connection string present in sample config; no active direct queries detected in current execution paths.",
       classification: "[CONFIG VERIFIED]"
     }
   ],
   entities: [
     {
-      name: "Attendance Records",
+      name: "Session Audit Records",
       database: "MongoDB",
-      collection_or_table: "attendance_records",
+      collection_or_table: "session_records",
       inferred_schema: {
         _id: "ObjectId",
         session_id: "string (UUID)",
         date: "string (YYYY-MM-DD)",
-        class_id: "string",
-        subject: "string",
-        students: "array[object] (Embedded student attendance records)",
+        service_id: "string",
+        event_type: "string",
+        events: "array[object] (Embedded event audit records)",
         status: "string ('active' | 'closed')",
         created_at: "timestamp"
       },
-      nested_arrays: ["students"],
+      nested_arrays: ["events"],
       primary_key_or_id: "session_id",
       unique_constraints: ["_id"],
       missing_constraints: [
-        "session_id + student_id composite unique index",
-        "students.$.student_id unique constraint"
+        "session_id + session_id composite unique index",
+        "events.$.event_id unique constraint"
       ],
       storage_model: "one-document-per-session",
       historical_retention: "Preserved in storage, but truncated at read layer",
       evidence: "[CODE VERIFIED] Collection stores documents for all past sessions; however, read endpoints retrieve only the single most recent session via find_one()."
     },
     {
-      name: "Students Roster",
+      name: "Session Index",
       database: "MongoDB",
-      collection_or_table: "students",
+      collection_or_table: "sessions",
       inferred_schema: {
         _id: "ObjectId",
-        student_id: "string",
+        session_id: "string",
         name: "string",
         face_encoding: "array[float] (128-d vector)",
         email: "string"
       },
       nested_arrays: ["face_encoding"],
-      primary_key_or_id: "student_id",
-      unique_constraints: ["student_id"],
+      primary_key_or_id: "session_id",
+      unique_constraints: ["session_id"],
       missing_constraints: [],
       storage_model: "one-document-per-user",
       historical_retention: "Full historical retention",
-      evidence: "[CODE VERIFIED] Master student profile directory."
+      evidence: "[CODE VERIFIED] Master session metadata registry."
     }
   ],
   write_operations: [
     {
       id: "OP-MGO-001",
-      file: "services/attendance_service.py",
-      function: "mark_attendance",
+      file: "services/session_service.py",
+      function: "record_session_event",
       line: 78,
       database: "MongoDB",
-      collection_or_table: "attendance_records",
+      collection_or_table: "session_records",
       operation: "PUSH",
       filter_expr: "{'session_id': session_id}",
-      fields_modified: ["students ($push)"],
-      code_snippet: "77:     # Fallback push into embedded students array\n78:     db.attendance_records.update_one({'session_id': session_id}, {'$push': {'students': student_record}})",
+      fields_modified: ["events ($push)"],
+      code_snippet: "77:     # Fallback push into embedded events array\n78:     db.session_records.update_one({'session_id': session_id}, {'$push': {'events': event_record}})",
       evidence_classification: "[CODE VERIFIED]",
       confidence: 1.0
     },
     {
       id: "OP-MGO-002",
-      file: "services/attendance_service.py",
+      file: "services/session_service.py",
       function: "create_session",
       line: 34,
       database: "MongoDB",
-      collection_or_table: "attendance_records",
+      collection_or_table: "session_records",
       operation: "INSERT",
       filter_expr: null,
-      fields_modified: ["session_id", "date", "class_id", "students", "status"],
-      code_snippet: "33:     session_doc = {'session_id': session_id, 'date': today, 'class_id': class_id, 'students': [], 'status': 'active'}\n34:     db.attendance_records.insert_one(session_doc)",
+      fields_modified: ["session_id", "date", "service_id", "events", "status"],
+      code_snippet: "33:     session_doc = {'session_id': session_id, 'date': today, 'service_id': service_id, 'events': [], 'status': 'active'}\n34:     db.session_records.insert_one(session_doc)",
       evidence_classification: "[CODE VERIFIED]",
       confidence: 1.0
     }
@@ -995,83 +995,83 @@ export const FORENSIC_REPORT_DATA = {
   read_operations: [
     {
       id: "OP-MGO-003",
-      file: "services/attendance_service.py",
-      function: "view_attendance",
+      file: "services/session_service.py",
+      function: "view_session_history",
       line: 112,
       database: "MongoDB",
-      collection_or_table: "attendance_records",
+      collection_or_table: "session_records",
       operation: "FIND_ONE",
-      filter_expr: "{'class_id': class_id}",
+      filter_expr: "{'service_id': service_id}",
       fields_modified: [],
-      code_snippet: "111: def view_attendance(class_id: str):\n112:     record = db.attendance_records.find_one({'class_id': class_id})\n113:     return record",
+      code_snippet: "111: def view_session_history(service_id: str):\n112:     record = db.session_records.find_one({'service_id': service_id})\n113:     return record",
       evidence_classification: "[CODE VERIFIED]",
       confidence: 1.0
     },
     {
       id: "OP-MGO-004",
-      file: "services/student_service.py",
-      function: "get_student_by_id",
+      file: "services/event_service.py",
+      function: "get_session_by_id",
       line: 45,
       database: "MongoDB",
-      collection_or_table: "students",
+      collection_or_table: "sessions",
       operation: "FIND_ONE",
-      filter_expr: "{'student_id': student_id}",
+      filter_expr: "{'session_id': session_id}",
       fields_modified: [],
-      code_snippet: "44: def get_student_by_id(student_id: str):\n45:     return db.students.find_one({'student_id': student_id})",
+      code_snippet: "44: def get_session_by_id(session_id: str):\n45:     return db.sessions.find_one({'session_id': session_id})",
       evidence_classification: "[CODE VERIFIED]",
       confidence: 1.0
     }
   ],
   flows: [
     {
-      entity: "Attendance Record",
+      entity: "Session Event Record",
       frontend_trigger: "Camera Face Detection / Recognition Stream",
-      api_endpoint: "POST /api/attendance/mark",
-      controller_func: "mark_attendance()",
-      database_target: "attendance_records (MongoDB)",
-      read_path: "GET /api/attendance/records (find_one())",
-      ui_display: "Attendance Table / Summary View",
+      api_endpoint: "POST /api/events/mark",
+      controller_func: "record_session_event()",
+      database_target: "session_records (MongoDB)",
+      read_path: "GET /api/events/records (find_one())",
+      ui_display: "Session Events / Audit View",
       steps: [
         {
           layer: "Frontend",
-          component: "CameraCapture.tsx / VideoStream.js",
-          action: "Captures video frame, runs local face recognition, and transmits base64/student payload",
-          file: "frontend/components/CameraCapture.tsx",
+          component: "EventIngress.tsx / VideoStream.js",
+          action: "Ingests event stream, extracts payload tokens, and routes asynchronously",
+          file: "frontend/components/EventIngress.tsx",
           line: 48
         },
         {
           layer: "API Gateway",
-          component: "POST /api/attendance/mark",
-          action: "Receives student identifier and session parameters, validates body, routes to handler",
-          file: "backend/api/routes/attendance.py",
+          component: "POST /api/events/mark",
+          action: "Receives event identifier and payload parameters, validates body, routes to handler",
+          file: "backend/api/routes/events.py",
           line: 24
         },
         {
           layer: "Service Layer",
-          component: "AttendanceService.mark_attendance()",
-          action: "Performs check on active session document and executes $push into embedded students array",
-          file: "backend/services/attendance_service.py",
+          component: "SessionEventService.record_session_event()",
+          action: "Performs check on active session document and executes $push into embedded events array",
+          file: "backend/services/session_service.py",
           line: 65
         },
         {
           layer: "Database",
-          component: "MongoDB: attendance_records",
-          action: "Appends student entry into students array in matching session_id document",
-          file: "backend/services/attendance_service.py",
+          component: "MongoDB: session_records",
+          action: "Appends event entry into events array in matching session_id document",
+          file: "backend/services/session_service.py",
           line: 78
         },
         {
           layer: "Read Path",
-          component: "GET /api/attendance/records (view_attendance)",
-          action: "Executes find_one() on attendance_records collection, returning single latest document",
-          file: "backend/services/attendance_service.py",
+          component: "GET /api/events/records (view_session_history)",
+          action: "Executes find_one() on session_records collection, returning single latest document",
+          file: "backend/services/session_service.py",
           line: 112
         },
         {
           layer: "Frontend UI",
-          component: "AttendanceHistoryView.tsx",
+          component: "SessionAuditView.tsx",
           action: "Renders single session response. Historical past sessions are omitted.",
-          file: "frontend/views/AttendanceHistoryView.tsx",
+          file: "frontend/views/SessionAuditView.tsx",
           line: 32
         }
       ]
@@ -1084,13 +1084,13 @@ export const FORENSIC_REPORT_DATA = {
       severity: "CRITICAL",
       category: "Query Truncation",
       classification: "[CODE VERIFIED]",
-      file: "services/attendance_service.py",
-      function: "view_attendance",
+      file: "services/session_service.py",
+      function: "view_session_history",
       line: 112,
-      evidence: "Function 'view_attendance' executes 'find_one()' on collection 'attendance_records'. In MongoDB, find_one() returns only the first matching document. All previous historical session documents exist in the database but are completely hidden from API consumers and UI views.",
-      impact: "Only current/single session attendance is displayed. Historical records disappear from the application UI.",
+      evidence: "Function 'view_session_history' executes 'find_one()' on collection 'session_records'. In MongoDB, find_one() returns only the first matching document. All previous historical session documents exist in the database but are completely hidden from API consumers and UI views.",
+      impact: "Only current/single session event history is displayed. Historical records disappear from the application UI.",
       confidence: 1.0,
-      code_snippet: "111: def view_attendance(class_id: str):\n112:     record = db.attendance_records.find_one({'class_id': class_id})\n113:     return record",
+      code_snippet: "111: def view_session_history(service_id: str):\n112:     record = db.session_records.find_one({'service_id': service_id})\n113:     return record",
       suggested_fix: "Replace 'find_one()' with 'find()' returning a cursor of sessions, or accept a date/session_id filter parameter."
     },
     {
@@ -1099,21 +1099,21 @@ export const FORENSIC_REPORT_DATA = {
       severity: "HIGH",
       category: "Race Condition",
       classification: "[CODE VERIFIED]",
-      file: "services/attendance_service.py",
-      function: "mark_attendance",
+      file: "services/session_service.py",
+      function: "record_session_event",
       line: 78,
-      evidence: "Function 'mark_attendance' invokes update with '$push' on array field. Because this write is not atomic with the presence check and lacks a unique constraint, concurrent requests create duplicate entries for the same student in the session.",
-      impact: "Duplicate student attendance entries within the same session document.",
+      evidence: "Function 'record_session_event' invokes update with '$push' on array field. Because this write is not atomic with the presence check and lacks a unique constraint, concurrent requests create duplicate entries for the same event in the session.",
+      impact: "Duplicate event entries within the same session document.",
       confidence: 1.0,
       concurrency_timeline: {
-        trigger: "Two rapid concurrent face recognition events for the same student",
-        step1: "Request A checks if student is in attendance array -> Returns false (not yet added)",
-        step2: "Request B checks if student is in attendance array -> Returns false (before Request A completes write)",
-        outcome: "Both requests execute $push, inserting duplicate student records into the embedded array.",
-        code_references: ["services/attendance_service.py:78"]
+        trigger: "Two rapid concurrent event submissions for the same session",
+        step1: "Request A checks if event is in event stream array -> Returns false (not yet added)",
+        step2: "Request B checks if event is in event stream array -> Returns false (before Request A completes write)",
+        outcome: "Both requests execute $push, inserting duplicate event records into the embedded array.",
+        code_references: ["services/session_service.py:78"]
       },
-      code_snippet: "77:     # Non-atomic check-then-push\n78:     db.attendance_records.update_one({'session_id': session_id}, {'$push': {'students': student_record}})",
-      suggested_fix: "Use MongoDB '$addToSet' with deterministic student identifier, or enforce compound uniqueness."
+      code_snippet: "77:     # Non-atomic check-then-push\n78:     db.session_records.update_one({'session_id': session_id}, {'$push': {'events': event_record}})",
+      suggested_fix: "Use MongoDB '$addToSet' with deterministic event identifier, or enforce compound uniqueness."
     },
     {
       id: "FRN-003",
@@ -1121,7 +1121,7 @@ export const FORENSIC_REPORT_DATA = {
       severity: "HIGH",
       category: "Missing Lifecycle",
       classification: "[CODE VERIFIED]",
-      file: "api/routes/attendance.py",
+      file: "api/routes/events.py",
       function: "finalize_session",
       line: 85,
       evidence: "Backend exposes session finalization logic (status: 'closed'), but frontend camera and recognition components stop locally without dispatching an API call to finalize the session. Sessions remain permanently in 'active' status in MongoDB.",
@@ -1139,10 +1139,10 @@ export const FORENSIC_REPORT_DATA = {
       file: "config.py",
       function: "(configuration)",
       line: 28,
-      evidence: "Plaintext database credentials committed directly to source control: mongodb://admin:<REDACTED>@127.0.0.1:27017/student_mgmt",
+      evidence: "Plaintext database credentials committed directly to source control: mongodb://admin:<REDACTED>@127.0.0.1:27017/event_stream_db",
       impact: "Unauthorized database access; risk of data exfiltration or tampering if repository is shared.",
       confidence: 1.0,
-      code_snippet: "MONGO_URI = 'mongodb://admin:<REDACTED>@127.0.0.1:27017/student_mgmt'",
+      code_snippet: "MONGO_URI = 'mongodb://admin:<REDACTED>@127.0.0.1:27017/event_stream_db'",
       suggested_fix: "Store database connection strings in environment variables (.env) and load via os.getenv()."
     },
     {
@@ -1157,40 +1157,40 @@ export const FORENSIC_REPORT_DATA = {
       evidence: "SUPABASE_URL is configured in environment parameters, but zero active queries or table operations target Supabase. 100% of runtime database operations execute against MongoDB via pymongo.",
       impact: "Misleading architectural assumptions; team members may assume data is in Supabase when it is only stored in MongoDB.",
       confidence: 1.0,
-      code_snippet: "SUPABASE_URL=https://xyz-university.supabase.co  # UNUSED\nMONGO_URI=mongodb://admin:<REDACTED>@127.0.0.1:27017 # ACTUALLY USED",
+      code_snippet: "SUPABASE_URL=https://repomind-cloud.supabase.co  # UNUSED\nMONGO_URI=mongodb://admin:<REDACTED>@127.0.0.1:27017 # ACTUALLY USED",
       suggested_fix: "Remove obsolete Supabase configuration or implement database synchronization / migration adapter."
     },
     {
       id: "FRN-006",
-      title: "Missing Unique Compound Constraint on attendance_records",
+      title: "Missing Unique Compound Constraint on session_records",
       severity: "MEDIUM",
       category: "Missing Constraint",
       classification: "[CODE VERIFIED]",
       file: "db/init.py",
       function: "collection_initialization",
       line: 12,
-      evidence: "Collection 'attendance_records' does not define a unique compound index on (session_id, student_id) in code or migration scripts. Data deduplication relies entirely on application-level checks.",
-      impact: "Database layer cannot prevent duplicate attendance insertions if application-level checks fail or race.",
+      evidence: "Collection 'session_records' does not define a unique compound index on (session_id, session_id) in code or migration scripts. Data deduplication relies entirely on application-level checks.",
+      impact: "Database layer cannot prevent duplicate event insertions if application-level checks fail or race.",
       confidence: 0.95,
-      code_snippet: "db.attendance_records.create_index([('session_id', 1), ('students.student_id', 1)], unique=True)  # Missing",
-      suggested_fix: "Add compound unique index on (session_id, student_id) during database initialization."
+      code_snippet: "db.session_records.create_index([('session_id', 1), ('events.event_id', 1)], unique=True)  # Missing",
+      suggested_fix: "Add compound unique index on (session_id, session_id) during database initialization."
     }
   ],
   root_causes: [
     {
       id: "RC-001",
-      title: "Historical Attendance Invisibility",
-      symptom: "Only current session attendance is visible; historical attendance records disappear from application UI.",
-      direct_cause: "Read API endpoint calls db.attendance_records.find_one() instead of find().",
-      underlying_cause: "Endpoint assumes only one session document is needed to represent all attendance records.",
+      title: "Historical Session Event Invisibility",
+      symptom: "Only current session session_event is visible; historical event records disappear from application UI.",
+      direct_cause: "Read API endpoint calls db.session_records.find_one() instead of find().",
+      underlying_cause: "Endpoint assumes only one session document is needed to represent all event records.",
       architectural_cause: "Lack of CQRS separation between real-time active session capture and multi-session historical reporting.",
       evidence_tag: "[CODE VERIFIED]"
     },
     {
       id: "RC-002",
-      title: "Duplicate Student Attendance in Embedded Arrays",
-      symptom: "Same student appears multiple times in attendance records for a single session.",
-      direct_cause: "Non-atomic check-then-push array update pattern in mark_attendance() allows interleaved concurrent requests.",
+      title: "Duplicate Event Mutations in Embedded Arrays",
+      symptom: "Same event appears multiple times in event records for a single session.",
+      direct_cause: "Non-atomic check-then-push array update pattern in record_session_event() allows interleaved concurrent requests.",
       underlying_cause: "MongoDB $push appends unconditionally without index uniqueness on embedded array elements.",
       architectural_cause: "Unenforced data-tier constraints; relying entirely on optimistic application-level checks without database locks or $addToSet.",
       evidence_tag: "[CODE VERIFIED]"
@@ -1233,7 +1233,7 @@ export const FORENSIC_REPORT_DATA = {
   ],
   unverified_items: [
     {
-      target: "Supabase External Project (https://xyz-university.supabase.co)",
+      target: "Supabase External Project (https://repomind-cloud.supabase.co)",
       reason: "Static offline analysis cannot authenticate against external Supabase REST/Postgres endpoint without API credentials.",
       classification: "[UNVERIFIED]",
       recommendation: "Provide valid SUPABASE_SERVICE_ROLE_KEY to enable remote schema and RLS policy verification."

@@ -1,11 +1,12 @@
 /**
  * RepoMind Sidebar Component
- * IDE-class engineering platform navigation matching Section 11:
- * REPOSITORY -> Overview, Ask AI, Architecture
+ * IDE-class engineering platform navigation matching Section 14:
+ * REPOSITORY -> Overview, Repositories, Ask AI, Architecture
  * ANALYSIS -> Forensic Analysis, Code Health, Impact Analysis
- * IMPROVE -> Refactor Studio, Diff Viewer
- * VERIFY -> Verification
- * SYSTEM -> Settings, Help & Docs
+ * IMPROVEMENT -> Refactor Studio, Diff Viewer
+ * VERIFICATION -> Verification
+ * ACCOUNT -> Settings
+ * Footer -> User avatar, user email, Sign out
  */
 
 import { Icons } from "./Icons.js";
@@ -15,7 +16,8 @@ export function renderSidebar(state) {
   const currentRoute = state.currentRoute;
   const isCollapsed = state.sidebarCollapsed;
   const findingsCount = state.findings.length;
-  const testsPassed = state.verificationData.passedCount;
+  const testsPassed = state.verificationData?.passedCount || 42;
+  const user = state.user || { name: "Developer", email: "user@repomind.io", initials: "DV" };
 
   const isMatch = (target) => {
     return currentRoute === target || currentRoute === target.replace("app/", "");
@@ -26,6 +28,7 @@ export function renderSidebar(state) {
       title: "REPOSITORY",
       items: [
         { id: "app/overview", label: "Overview", icon: Icons.Overview(14) },
+        { id: "app/repositories", label: "Repositories", icon: Icons.Repository(14) },
         { id: "app/ask", label: "Ask AI", icon: Icons.AskAI(14), badge: "AI" },
         { id: "app/architecture", label: "Architecture", icon: Icons.Architecture(14) },
       ]
@@ -39,20 +42,20 @@ export function renderSidebar(state) {
       ]
     },
     {
-      title: "IMPROVE",
+      title: "IMPROVEMENT",
       items: [
         { id: "app/refactor", label: "Refactor Studio", icon: Icons.Refactor(14) },
         { id: "app/diff", label: "Diff Viewer", icon: Icons.DiffViewer(14) },
       ]
     },
     {
-      title: "VERIFY",
+      title: "VERIFICATION",
       items: [
         { id: "app/verification", label: "Verification", icon: Icons.Verification(14), badge: `${testsPassed} passed` },
       ]
     },
     {
-      title: "SYSTEM",
+      title: "ACCOUNT",
       items: [
         { id: "app/settings", label: "Settings", icon: Icons.Settings(14) },
       ]
@@ -62,20 +65,6 @@ export function renderSidebar(state) {
   return `
     <aside class="sidebar ${isCollapsed ? 'collapsed' : ''}" role="navigation" aria-label="Main Navigation">
       <div class="sidebar-nav">
-        <!-- Switch Repository Context -->
-        <a 
-          href="#app" 
-          class="nav-item ${currentRoute === 'app' ? 'active' : ''}" 
-          data-route="app"
-          title="All Repositories"
-          style="margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;"
-        >
-          <span class="nav-item-icon" style="color: var(--brand-accent-text);">
-            ${Icons.Repository(14)}
-          </span>
-          <span class="nav-item-text" style="font-weight: 600;">All Repositories</span>
-        </a>
-
         ${sections.map(sec => `
           <div class="sidebar-section-title" style="margin-top: 10px; margin-bottom: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-muted); text-transform: uppercase;">
             ${sec.title}
@@ -97,16 +86,31 @@ export function renderSidebar(state) {
         `).join("")}
       </div>
 
-      <div class="sidebar-footer">
-        <a 
-          href="#help" 
-          class="nav-item" 
-          id="sidebar-help-link"
-          title="Engineering Documentation & Guidelines"
-        >
-          <span class="nav-item-icon">${Icons.Help(14)}</span>
-          <span class="nav-item-text">Docs & Workflow</span>
-        </a>
+      <!-- Authenticated User Profile & Sign Out Footer -->
+      <div class="sidebar-footer" style="padding: 10px 12px; border-top: 1px solid var(--border-subtle); background: var(--bg-primary);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--brand-accent); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              ${user.initials || "DV"}
+            </div>
+            <div style="min-width: 0; line-height: 1.2;">
+              <div style="font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${user.name || "Developer"}
+              </div>
+              <div style="font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-mono);">
+                ${user.email || ""}
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost btn-xs" id="sidebar-signout-btn" title="Sign out" style="padding: 4px; color: var(--text-muted);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
       </div>
     </aside>
   `;
@@ -125,28 +129,11 @@ export function attachSidebarEvents() {
     });
   });
 
-  const helpLink = document.getElementById("sidebar-help-link");
-  if (helpLink) {
-    helpLink.addEventListener("click", (e) => {
+  const signoutBtn = document.getElementById("sidebar-signout-btn");
+  if (signoutBtn) {
+    signoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      store.openCodeInspector(
-        "RepoMind Engineering Philosophy",
-        "PHILOSOPHY.md",
-        "1-30",
-        `# RepoMind: Autonomous Codebase Understanding & Safe Refactoring
-
-Core Promise:
-"Understand your codebase. Refactor it safely."
-
-Continuous Engineering Workflow:
-1. UNDERSTAND: AST parsing, architectural topology, and symbol dependencies.
-2. DETECT: Concurrency hazards, historical data truncation, security and quality smells.
-3. IMPACT: Caller-callee call graph tracing to evaluate blast radius before changes.
-4. REFACTOR: Evidence-backed decomposition adhering to SRP and clean design.
-5. DIFF: Unified and split diff review with explicit human approval.
-6. VERIFY: Automated test suites verify 0 regressions before committing.
-`
-      );
+      store.logout();
     });
   }
 }

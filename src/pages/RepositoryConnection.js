@@ -53,11 +53,14 @@ export function renderRepositoryConnection(state) {
                 type="url" 
                 id="repo-url-input" 
                 class="input-text" 
-                placeholder="https://github.com/example/project"
-                value="${repo ? repo.url : 'https://github.com/university-sys/student-management-system'}"
+                placeholder="https://github.com/owner/repository"
+                value="${repo ? repo.url : 'https://github.com/koteswararaoderangula534-creator/repomind'}"
                 ${isAnalyzing ? 'disabled' : ''}
                 required
               />
+              <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.4;">
+                RepoMind will inspect the repository structure, dependencies and source code to generate an engineering intelligence report.
+              </p>
             </div>
 
             <!-- Branch -->
@@ -88,9 +91,9 @@ export function renderRepositoryConnection(state) {
               </button>
 
               <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted);">
-                <span>Quick demo:</span>
-                <button type="button" class="btn btn-ghost btn-xs sample-repo-btn" data-url="https://github.com/university-sys/student-management-system" data-branch="main">
-                  student-management-system
+                <span>Sample repo:</span>
+                <button type="button" class="btn btn-ghost btn-xs sample-repo-btn" data-url="https://github.com/koteswararaoderangula534-creator/repomind" data-branch="main">
+                  repomind
                 </button>
               </div>
             </div>

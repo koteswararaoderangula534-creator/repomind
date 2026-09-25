@@ -22,7 +22,7 @@ class VerificationService:
         suites = [
             TestSuiteResult(name="tests/test_orders.py", total=16, passed=16, failed=0, duration="680ms"),
             TestSuiteResult(name="tests/test_auth.py", total=12, passed=12, failed=0, duration="440ms"),
-            TestSuiteResult(name="tests/test_student_service.py", total=8, passed=8, failed=0, duration="380ms"),
+            TestSuiteResult(name="tests/test_session_service.py", total=8, passed=8, failed=0, duration="380ms"),
             TestSuiteResult(name="tests/test_billing.py", total=6, passed=6, failed=0, duration="340ms"),
         ]
 

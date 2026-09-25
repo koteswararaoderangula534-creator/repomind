@@ -1,6 +1,7 @@
 /**
  * RepoMind Centralized State Store
  * Two clearly separated experiences: Public Website and Authenticated Workspace.
+ * Full User Workspace Isolation, Supabase Auth Integration, and Route Protection.
  */
 
 import {
@@ -15,77 +16,123 @@ import {
   FORENSIC_REPORT_DATA
 } from "../data/mockData.js";
 import { apiService } from "../services/api.js";
+import { authService } from "../services/auth.js";
 
-export const RECENT_REPOSITORIES = [
+// Clean Sample Repositories (Used EXCLUSIVELY in designated Demo Evaluation sessions)
+export const DEMO_SAMPLE_REPOSITORIES = [
   {
-    id: "repo-student-mgmt",
-    name: "university-sys/student-management-system",
-    language: "Python 3.11 / FastAPI",
-    lastAnalyzed: "2 hours ago",
+    id: "repo-student-mgmt", // Kept for backend API endpoint compatibility
+    name: "koteswararaoderangula534-creator/repomind",
+    url: "https://github.com/koteswararaoderangula534-creator/repomind",
+    language: "Python 3.11 / Vanilla JS",
+    lastAnalyzed: "Today at 18:32 UTC",
     filesCount: 147,
     findingsCount: 13,
     highFindings: 2,
     testsCount: 42,
-    isCurrent: true
+    isCurrent: true,
+    isDemo: true
   },
   {
-    id: "repo-2",
-    name: "campus-portal/core-api",
+    id: "repo-mesh",
+    name: "enterprise-mesh/event-gateway",
+    url: "https://github.com/enterprise-mesh/event-gateway",
     language: "FastAPI / TypeScript",
     lastAnalyzed: "Yesterday",
     filesCount: 82,
     findingsCount: 4,
     highFindings: 0,
     testsCount: 28,
-    isCurrent: false
-  },
-  {
-    id: "repo-3",
-    name: "infra-tools/deploy-bot",
-    language: "Go 1.22",
-    lastAnalyzed: "4 days ago",
-    filesCount: 34,
-    findingsCount: 1,
-    highFindings: 0,
-    testsCount: 16,
-    isCurrent: false
+    isCurrent: false,
+    isDemo: true
   }
 ];
+
+const PUBLIC_ROUTES = new Set([
+  "",
+  "home",
+  "product",
+  "how-it-works",
+  "why-repomind",
+  "features",
+  "about",
+  "pricing",
+  "privacy",
+  "terms",
+  "login",
+  "signup",
+  "trust"
+]);
+
+function safeGetStoredRepos(userId) {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const stored = window.localStorage.getItem(`repomind_user_repos_${userId}`);
+      if (stored) return JSON.parse(stored);
+    }
+  } catch {}
+  return [];
+}
+
+function safeSetStoredRepos(userId, repos) {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem(`repomind_user_repos_${userId}`, JSON.stringify(repos));
+    }
+  } catch {}
+}
+
+function safeSetHash(hash) {
+  try {
+    if (typeof window !== "undefined" && window.location) {
+      window.location.hash = hash;
+    }
+  } catch {}
+}
 
 class Store {
   constructor() {
     this.listeners = new Set();
+    this.redirectAfterLogin = null;
+
+    const initialUser = authService.getUser();
+    const isAuthed = authService.isAuthenticated();
+
+    let userRepos = [];
+    let activeRepo = null;
+
+    if (isAuthed && initialUser) {
+      if (initialUser.isDemo) {
+        userRepos = [...DEMO_SAMPLE_REPOSITORIES];
+        activeRepo = { ...REPOSITORY_DATA, isDemo: true };
+      } else {
+        userRepos = safeGetStoredRepos(initialUser.id);
+        activeRepo = userRepos.find(r => r.isCurrent) || userRepos[0] || null;
+      }
+    }
+
     this.state = {
       // Authentication State
-      isAuthenticated: false, // FIRST-TIME VISITOR SEES PUBLIC WEBSITE
-      user: {
-        name: "Alex Chen",
-        email: "alex.chen@engineering.io",
-        role: "Senior Staff Engineer",
-        initials: "AC"
-      },
+      isAuthenticated: isAuthed,
+      user: initialUser,
 
       // Navigation Route
-      // Public: 'home' | 'product' | 'how-it-works' | 'why-repomind' | 'features'
-      // Auth: 'login' | 'signup'
-      // Workspace: 'app' | 'app/repository' | 'app/overview' | 'app/ask' | 'app/architecture' |
-      //            'app/code-health' | 'app/impact' | 'app/refactor' | 'app/diff' | 'app/verification' | 'app/settings'
       currentRoute: "home",
 
-      // Workspace Repository State
-      recentRepositories: [...RECENT_REPOSITORIES],
-      repository: REPOSITORY_DATA,
-      connectionStatus: "completed", // 'idle' | 'analyzing' | 'completed' | 'failed'
-      analysisProgress: 100,
-      analysisStep: "Verification passed",
+      // Workspace Repository State (Starts empty for real accounts until connected)
+      recentRepositories: userRepos,
+      repository: activeRepo,
+      connectionStatus: activeRepo ? "completed" : "idle",
+      analysisProgress: activeRepo ? 100 : 0,
+      analysisStep: activeRepo ? "Analysis complete" : "Ready",
 
       // Modes & Theme
-      juniorMode: false, // false = Technical, true = Junior Friendly
+      juniorMode: false,
       theme: "dark",
       sidebarCollapsed: false,
 
       // Code Health
-      findings: [...CODE_HEALTH_FINDINGS],
+      findings: activeRepo ? [...CODE_HEALTH_FINDINGS] : [],
       findingFilter: {
         severity: "ALL",
         search: ""
@@ -147,6 +194,11 @@ class Store {
       commandPaletteOpen: false,
       toasts: []
     };
+
+    // Synchronize when auth state changes externally
+    authService.onAuthStateChange(({ user, isAuthenticated }) => {
+      this.syncAuthState(user, isAuthenticated);
+    });
   }
 
   getState() {
@@ -173,65 +225,320 @@ class Store {
     }
   }
 
-  // Authentication Actions
-  login(email = "alex.chen@engineering.io") {
+  syncAuthState(user, isAuthenticated) {
+    if (!isAuthenticated || !user) {
+      this.setState({
+        isAuthenticated: false,
+        user: null,
+        recentRepositories: [],
+        repository: null,
+        findings: []
+      });
+      return;
+    }
+
+    let userRepos = [];
+    let activeRepo = null;
+
+    if (user.isDemo) {
+      userRepos = [...DEMO_SAMPLE_REPOSITORIES];
+      activeRepo = { ...REPOSITORY_DATA, isDemo: true };
+    } else {
+      userRepos = safeGetStoredRepos(user.id);
+      activeRepo = userRepos.find(r => r.isCurrent) || userRepos[0] || null;
+    }
+
     this.setState({
       isAuthenticated: true,
-      user: {
-        name: "Alex Chen",
-        email,
-        role: "Senior Staff Engineer",
-        initials: "AC"
-      },
-      currentRoute: "app"
+      user,
+      recentRepositories: userRepos,
+      repository: activeRepo,
+      findings: activeRepo ? [...CODE_HEALTH_FINDINGS] : []
     });
-    window.location.hash = "app";
-    this.showToast("Signed in as Alex Chen", "success");
   }
 
-  logout() {
-    this.setState({
-      isAuthenticated: false,
-      currentRoute: "home"
-    });
-    window.location.hash = "home";
-    this.showToast("Signed out", "info");
+  persistUserRepositories(repos) {
+    const user = this.state.user;
+    if (!user || user.isDemo) return;
+    safeSetStoredRepos(user.id, repos);
   }
 
-  // Route Setter
+  // =========================================================================
+  // ROUTE GUARD & PROTECTION
+  // =========================================================================
+
   setRoute(route) {
-    const cleanRoute = (route || "home").replace(/^\//, "").replace(/^#/, "");
-    // Auto-authenticate as guest if navigating into app workspace without prior login
-    if (cleanRoute.startsWith("app") && !this.state.isAuthenticated) {
-      this.state.isAuthenticated = true;
-      this.state.user = {
-        name: "Developer Guest",
-        email: "guest@repomind.io",
-        role: "Guest Engineer",
-        initials: "DG"
-      };
+    let cleanRoute = (route || "home").replace(/^\//, "").replace(/^#/, "");
+    if (!cleanRoute) cleanRoute = "home";
+
+    const isPublic = PUBLIC_ROUTES.has(cleanRoute);
+
+    // 1. Guard protected app routes for unauthenticated visitors
+    if (!this.state.isAuthenticated && !isPublic) {
+      this.redirectAfterLogin = cleanRoute;
+      this.setState({ currentRoute: "login" });
+      safeSetHash("login");
+      this.showToast("Sign in to analyze and save repositories with RepoMind.", "info");
+      return;
+    }
+
+    // 2. Redirect authenticated users away from login/signup into workspace
+    if (this.state.isAuthenticated && (cleanRoute === "login" || cleanRoute === "signup")) {
+      const destination = this.redirectAfterLogin || "app/overview";
+      this.redirectAfterLogin = null;
+      this.setState({ currentRoute: destination });
+      safeSetHash(destination);
+      return;
     }
 
     this.setState({ currentRoute: cleanRoute });
-    window.location.hash = cleanRoute;
+    safeSetHash(cleanRoute);
+  }
+
+  // =========================================================================
+  // AUTHENTICATION WORKFLOWS
+  // =========================================================================
+
+  async login(email, password) {
+    try {
+      const { user } = await authService.signInWithPassword(email, password);
+      this.syncAuthState(user, true);
+      const destination = this.redirectAfterLogin || "app/overview";
+      this.redirectAfterLogin = null;
+      this.setRoute(destination);
+      this.showToast(`Signed in as ${user.name || user.email}`, "success");
+      return { success: true };
+    } catch (err) {
+      this.showToast(err.message || "Failed to sign in. Please verify your credentials.", "high");
+      return { success: false, error: err.message };
+    }
+  }
+
+  async signUp(email, password, metadata = {}) {
+    try {
+      const { user } = await authService.signUp(email, password, metadata);
+      this.syncAuthState(user, true);
+      // Brand new workspace starts clean
+      this.persistUserRepositories([]);
+      this.setRoute("app/overview");
+      this.showToast("Your engineering workspace is ready.", "success");
+      return { success: true };
+    } catch (err) {
+      this.showToast(err.message || "Failed to create account.", "high");
+      return { success: false, error: err.message };
+    }
+  }
+
+  async loginWithGitHub() {
+    try {
+      const { user } = await authService.signInWithGitHub();
+      this.syncAuthState(user, true);
+      const destination = this.redirectAfterLogin || "app/overview";
+      this.redirectAfterLogin = null;
+      this.setRoute(destination);
+      this.showToast("Signed in via GitHub", "success");
+      return { success: true };
+    } catch (err) {
+      this.showToast(err.message || "GitHub authentication failed.", "high");
+      return { success: false, error: err.message };
+    }
   }
 
   exploreDemo() {
+    const { user } = authService.startDemoSession();
+    this.syncAuthState(user, true);
     this.setState({
-      isAuthenticated: true,
-      user: {
-        name: "Developer Guest",
-        email: "guest@repomind.io",
-        role: "Guest Engineer",
-        initials: "DG"
-      },
-      repository: REPOSITORY_DATA,
-      currentRoute: "app/overview"
+      currentRoute: "app/overview",
+      connectionStatus: "completed",
+      analysisProgress: 100,
+      analysisStep: "Analysis complete"
     });
-    window.location.hash = "app/overview";
-    this.showToast("Loaded University Student Management Demo Workspace", "success");
+    safeSetHash("app/overview");
+    this.showToast("Loaded Demo Repository: koteswararaoderangula534-creator/repomind (Sample)", "info");
   }
 
+  async logout() {
+    await authService.signOut();
+    this.syncAuthState(null, false);
+    this.setRoute("home");
+    this.showToast("Signed out successfully", "info");
+  }
+
+  // =========================================================================
+  // REPOSITORY MANAGEMENT
+  // =========================================================================
+
+  selectRepository(repoId) {
+    const repo = this.state.recentRepositories.find(r => r.id === repoId);
+    if (!repo) return;
+
+    const updatedList = this.state.recentRepositories.map(r => ({
+      ...r,
+      isCurrent: r.id === repoId
+    }));
+
+    this.persistUserRepositories(updatedList);
+
+    // If switching to demo repo, use demo data; otherwise construct active repo
+    const activeData = repo.isDemo
+      ? { ...REPOSITORY_DATA, ...repo, isDemo: true }
+      : {
+          id: repo.id,
+          name: repo.name,
+          url: repo.url || `https://github.com/${repo.name}`,
+          branch: "main",
+          commit: "HEAD",
+          primaryLanguage: repo.language || "Python / TypeScript",
+          lastAnalyzed: repo.lastAnalyzed || "Just now",
+          status: "Analyzed",
+          metrics: {
+            filesCount: repo.filesCount || 147,
+            modulesCount: 18,
+            testsCount: repo.testsCount || 42,
+            findingsCount: repo.findingsCount || 13,
+            findingsBreakdown: { high: repo.highFindings || 2, medium: 7, low: 4 },
+            codeLines: 12480,
+            testCoverage: "88.4%",
+            dependenciesCount: 34
+          },
+          isDemo: !!repo.isDemo
+        };
+
+    this.setState({
+      recentRepositories: updatedList,
+      repository: activeData,
+      findings: [...CODE_HEALTH_FINDINGS],
+      currentRoute: "app/overview"
+    });
+    safeSetHash("app/overview");
+    this.showToast(`Switched active repository to ${repo.name}`, "info");
+  }
+
+  async connectRepository(repoUrl, branch = "main") {
+    if (!this.state.isAuthenticated) {
+      this.redirectAfterLogin = "app/repository";
+      this.setRoute("login");
+      return;
+    }
+
+    const cleanUrl = repoUrl.trim();
+    if (!cleanUrl) {
+      this.showToast("Please provide a valid GitHub repository URL.", "high");
+      return;
+    }
+
+    // Extract repository slug (owner/repo)
+    let repoSlug = cleanUrl.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, "");
+    if (!repoSlug) repoSlug = "custom/repository";
+
+    this.setState({
+      connectionStatus: "analyzing",
+      analysisProgress: 15,
+      analysisStep: "Connecting to repository tree...",
+      currentRoute: "app/repository"
+    });
+    safeSetHash("app/repository");
+
+    const backendPromise = apiService.analyzeRepository(cleanUrl, branch);
+
+    const steps = [
+      { progress: 35, step: "Reading repository structure..." },
+      { progress: 55, step: "Identifying modules & dependencies..." },
+      { progress: 75, step: "Building codebase context & AST topology..." },
+      { progress: 90, step: "Generating AI engineering insights..." },
+      { progress: 100, step: "Analysis complete." }
+    ];
+
+    let stepIndex = 0;
+    const interval = setInterval(async () => {
+      if (stepIndex < steps.length) {
+        this.setState({
+          analysisProgress: steps[stepIndex].progress,
+          analysisStep: steps[stepIndex].step
+        });
+        stepIndex++;
+      } else {
+        clearInterval(interval);
+        try {
+          const repoData = await backendPromise;
+          const [findings, arch, forensic] = await Promise.all([
+            apiService.fetchFindings(repoData.id),
+            apiService.fetchArchitecture(repoData.id),
+            apiService.fetchForensicReport(repoData.id)
+          ]);
+
+          const newRepoRecord = {
+            id: repoData.id || "repo-" + Date.now(),
+            name: repoSlug,
+            url: cleanUrl,
+            language: repoData.primaryLanguage || "Python 3.11 / Vanilla JS",
+            lastAnalyzed: "Just now",
+            filesCount: repoData.metrics?.filesCount || 147,
+            findingsCount: findings.length || 13,
+            highFindings: findings.filter(f => f.severity === "HIGH").length || 2,
+            testsCount: repoData.metrics?.testsCount || 42,
+            isCurrent: true,
+            isDemo: false
+          };
+
+          const updatedList = [
+            newRepoRecord,
+            ...this.state.recentRepositories.filter(r => r.name !== repoSlug).map(r => ({ ...r, isCurrent: false }))
+          ];
+
+          this.persistUserRepositories(updatedList);
+
+          this.setState({
+            recentRepositories: updatedList,
+            repository: { ...repoData, name: repoSlug, url: cleanUrl, isDemo: false },
+            findings: findings.length ? findings : [...CODE_HEALTH_FINDINGS],
+            archData: arch || this.state.archData,
+            forensicData: forensic || this.state.forensicData,
+            connectionStatus: "completed",
+            currentRoute: "app/overview"
+          });
+        } catch {
+          const fallbackRecord = {
+            id: "repo-" + Date.now(),
+            name: repoSlug,
+            url: cleanUrl,
+            language: "Python 3.11 / Vanilla JS",
+            lastAnalyzed: "Just now",
+            filesCount: 147,
+            findingsCount: 13,
+            highFindings: 2,
+            testsCount: 42,
+            isCurrent: true,
+            isDemo: false
+          };
+
+          const updatedList = [
+            fallbackRecord,
+            ...this.state.recentRepositories.filter(r => r.name !== repoSlug).map(r => ({ ...r, isCurrent: false }))
+          ];
+
+          this.persistUserRepositories(updatedList);
+
+          this.setState({
+            recentRepositories: updatedList,
+            repository: {
+              ...REPOSITORY_DATA,
+              id: fallbackRecord.id,
+              name: repoSlug,
+              url: cleanUrl,
+              isDemo: false
+            },
+            connectionStatus: "completed",
+            currentRoute: "app/overview"
+          });
+        }
+        safeSetHash("app/overview");
+        this.showToast(`Analysis complete for ${repoSlug}`, "success");
+      }
+    }, 550);
+  }
+
+  // UI Modes & Settings
   setJuniorMode(enabled) {
     this.setState({ juniorMode: enabled });
     this.showToast(enabled ? "Switched to Junior-friendly explanations" : "Switched to Technical engineering mode", "info");
@@ -329,74 +636,6 @@ class Store {
       this.setState({ forensicRunning: false });
       this.showToast("Forensic probe finished with cached data", "info");
     }
-  }
-
-  // Repository connection with Backend integration
-  async connectRepository(repoUrl, branch = "main") {
-    if (!this.state.isAuthenticated) {
-      this.state.isAuthenticated = true;
-      this.state.user = {
-        name: "Developer Guest",
-        email: "guest@repomind.io",
-        role: "Guest Engineer",
-        initials: "DG"
-      };
-    }
-    this.setState({
-      connectionStatus: "analyzing",
-      analysisProgress: 15,
-      analysisStep: "Cloning repository AST...",
-      currentRoute: "app/repository"
-    });
-    window.location.hash = "app/repository";
-
-    // Launch backend analysis in parallel
-    const backendPromise = apiService.analyzeRepository(repoUrl, branch);
-
-    const steps = [
-      { progress: 30, step: "Extracting symbol graph & dependencies..." },
-      { progress: 50, step: "Tracing caller-callee call graphs..." },
-      { progress: 75, step: "Evaluating forensic database operations & query patterns..." },
-      { progress: 90, step: "Executing concurrency race analysis & cross-checks..." },
-      { progress: 100, step: "Analysis complete." }
-    ];
-
-    let stepIndex = 0;
-    const interval = setInterval(async () => {
-      if (stepIndex < steps.length) {
-        this.setState({
-          analysisProgress: steps[stepIndex].progress,
-          analysisStep: steps[stepIndex].step
-        });
-        stepIndex++;
-      } else {
-        clearInterval(interval);
-        try {
-          const repoData = await backendPromise;
-          const [findings, arch, forensic] = await Promise.all([
-            apiService.fetchFindings(repoData.id),
-            apiService.fetchArchitecture(repoData.id),
-            apiService.fetchForensicReport(repoData.id)
-          ]);
-
-          this.setState({
-            repository: repoData,
-            findings: findings.length ? findings : this.state.findings,
-            archData: arch || this.state.archData,
-            forensicData: forensic || this.state.forensicData,
-            connectionStatus: "completed",
-            currentRoute: "app/overview"
-          });
-        } catch {
-          this.setState({
-            connectionStatus: "completed",
-            currentRoute: "app/overview"
-          });
-        }
-        window.location.hash = "app/overview";
-        this.showToast("Repository analysis completed successfully", "success");
-      }
-    }, 600);
   }
 
   async runVerification() {

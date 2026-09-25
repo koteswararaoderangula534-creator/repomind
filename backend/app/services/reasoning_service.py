@@ -41,27 +41,27 @@ class CodeReasoningService:
     def _answer_forensic_query(self, qid: str, query: str, ast_data: dict[str, dict[str, Any]]) -> AskResponse:
         sources = [
             SourceReference(
-                file="services/attendance_service.py",
+                file="services/session_service.py",
                 lines="110–115",
-                func="get_student_attendance",
+                func="get_session_summary",
                 fullSnippet=(
-                    "110: async def get_student_attendance(student_id: str):\n"
+                    "110: async def get_session_summary(session_id: str):\n"
                     "111:     # HISTORICAL TRUNCATION RISK: find_one() discards prior sessions\n"
-                    "112:     record = await db.attendance.find_one({'student_id': student_id})\n"
+                    "112:     record = await db.session_records.find_one({'session_id': session_id})\n"
                     "113:     return record"
                 ),
             ),
             SourceReference(
-                file="services/attendance_service.py",
+                file="services/session_service.py",
                 lines="75–82",
-                func="mark_attendance",
+                func="record_session_event",
                 fullSnippet=(
-                    "75: async def mark_attendance(student_id: str, session_data: dict):\n"
+                    "75: async def record_session_event(session_id: str, session_data: dict):\n"
                     "76:     today = datetime.now().strftime('%Y-%m-%d')\n"
                     "77:     # CONCURRENCY RISK: Unprotected array append without optimistic lock\n"
-                    "78:     await db.attendance.update_one(\n"
-                    "79:         {'student_id': student_id, 'date': today},\n"
-                    "80:         {'$push': {'sessions': session_data}},\n"
+                    "78:     await db.session_records.update_one(\n"
+                    "79:         {'session_id': session_id, 'date': today},\n"
+                    "80:         {'$push': {'events': session_data}},\n"
                     "81:         upsert=True\n"
                     "82:     )"
                 ),
@@ -69,10 +69,10 @@ class CodeReasoningService:
         ]
 
         flow_steps = [
-            FlowStep(name="src/components/CameraCapture.tsx", role="Client UI", action="Dispatches face detection payload"),
-            FlowStep(name="api/routes/attendance.py", role="API Ingress", action="Validates student ID & forwards to service"),
-            FlowStep(name="services/attendance_service.py", role="Service Layer", action="Executes find_one() or $push update_one()"),
-            FlowStep(name="MongoDB attendance", role="Data Persistence", action="Stores attendance session records"),
+            FlowStep(name="src/components/EventIngress.tsx", role="Client UI", action="Dispatches event payload"),
+            FlowStep(name="api/routes/events.py", role="API Ingress", action="Validates session ID & forwards to service"),
+            FlowStep(name="services/session_service.py", role="Service Layer", action="Executes find_one() or $push update_one()"),
+            FlowStep(name="MongoDB session_records", role="Data Persistence", action="Stores session event records"),
         ]
 
         return AskResponse(
@@ -81,19 +81,19 @@ class CodeReasoningService:
             category="Forensic Code Evidence",
             technicalExplanation=(
                 "Forensic investigation reveals an architectural divergence between the write and read paths. "
-                "The write path appends multi-session objects using `$push` at services/attendance_service.py:78, "
-                "but the read path at services/attendance_service.py:112 queries with `find_one({'student_id': student_id})`. "
-                "Because `find_one()` returns only the first matching document in the collection, historical attendance sessions "
+                "The write path appends multi-session objects using `$push` at services/session_service.py:78, "
+                "but the read path at services/session_service.py:112 queries with `find_one({'session_id': session_id})`. "
+                "Because `find_one()` returns only the first matching document in the collection, historical session events "
                 "are truncated before reaching the frontend history view."
             ),
             juniorExplanation=(
-                "Imagine you take attendance every day in a notebook, but whenever someone asks to see a student's record, "
-                "you only show them the very first day! The other days are still written in the book, but the reader "
+                "Imagine you record server events every day in a logbook, but whenever someone asks to see a session's history, "
+                "you only show them the very first day! The other days are still written in the log, but the reader "
                 "never turns the page because find_one() only looks at page one."
             ),
             flowSteps=flow_steps,
             sources=sources,
-            affectedEntities=["attendance", "student_id", "sessions"],
+            affectedEntities=["session_records", "session_id", "events"],
             riskAssessment="HIGH — Verified query selector truncation (FRN-001) causing user-facing data loss appearance.",
         )
 
@@ -191,7 +191,7 @@ class CodeReasoningService:
                 "and invokes notification_worker to dispatch confirmation emails."
             ),
             juniorExplanation=(
-                "When a student pays for a course or lab fee, the app checks if the class has space, charges their payment card, "
+                "When a customer checks out an order, the app checks if inventory is available, charges their payment card, "
                 "saves the receipt in the database, and sends an email receipt."
             ),
             flowSteps=flow_steps,
@@ -219,7 +219,7 @@ class CodeReasoningService:
 
         flow_steps = [
             FlowStep(name="services/*", role="Authorized Services", action="Read/Write queries via ORM session"),
-            FlowStep(name="api/routes/enrollment.py", role="Architectural Leak", action="Direct DB query bypassing service"),
+            FlowStep(name="api/routes/sessions.py", role="Architectural Leak", action="Direct DB query bypassing service"),
             FlowStep(name="database.py", role="Connection Pool", action="Manages engine connection pool and sessions"),
         ]
 
@@ -229,7 +229,7 @@ class CodeReasoningService:
             category="Data Architecture",
             technicalExplanation=(
                 "The database layer is managed through SQLAlchemy models in models/. Direct session access is concentrated in "
-                "services/student_service.py and auth_service.py. An architectural leak exists where route handlers directly "
+                "services/session_service.py and auth_service.py. An architectural leak exists where route handlers directly "
                 "invoke session queries."
             ),
             juniorExplanation=(

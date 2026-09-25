@@ -17,7 +17,7 @@ export function renderHowItWorksPage(state) {
       badge: "Ingress",
       title: "Connect a GitHub repository",
       desc: "Provide any public or authenticated private GitHub repository URL and branch name. RepoMind clones the tree and initializes the AST symbol parser.",
-      artifact: "Input: https://github.com/university-sys/student-management-system [Branch: main]"
+      artifact: "Input: https://github.com/koteswararaoderangula534-creator/repomind [Branch: main]"
     },
     {
       num: "02",

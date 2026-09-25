@@ -14,8 +14,37 @@ import { Icons } from "../components/Icons.js";
 import { store } from "../state/store.js";
 
 export function renderRepositoryOverview(state) {
-  const repo = state.repository || {};
+  const repo = state.repository;
   const isJunior = state.juniorMode;
+
+  // Professional Empty State when no repository has been connected or analyzed yet
+  if (!repo || !repo.name) {
+    return `
+      <div class="workspace-content" style="max-width: 800px; margin: 40px auto; padding: 20px;">
+        <div class="panel" style="text-align: center; padding: 56px 28px; background: var(--bg-primary); border: 1px dashed var(--border-default); border-radius: var(--radius-md);">
+          <div style="width: 52px; height: 52px; border-radius: var(--radius-sm); background: var(--bg-secondary); border: 1px solid var(--border-default); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--brand-accent-text);">
+            ${Icons.Repository(28)}
+          </div>
+          <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin: 0 0 10px 0;">
+            Your code intelligence workspace is ready.
+          </h2>
+          <p style="font-size: 13px; color: var(--text-secondary); max-width: 520px; margin: 0 auto 24px auto; line-height: 1.6;">
+            Connect a GitHub repository to understand its architecture, identify risks, trace dependencies, and explore AI-powered engineering insights.
+          </p>
+          <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <button class="btn btn-primary" id="btn-empty-connect-repo" style="padding: 10px 22px; font-size: 13px;">
+              ${Icons.Repository(14)}
+              <span>Connect Repository</span>
+            </button>
+            <button class="btn btn-secondary" id="btn-empty-try-demo" style="padding: 10px 18px; font-size: 13px;">
+              <span>Explore Sample Demo Repository</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   const metrics = repo.metrics || {};
   const findings = state.findings || [];
   const highFindings = findings.filter(f => f.severity === "HIGH");
@@ -30,6 +59,15 @@ export function renderRepositoryOverview(state) {
 
   return `
     <div class="workspace-content">
+      ${repo.isDemo ? `
+        <div style="padding: 8px 14px; background: rgba(56, 139, 253, 0.08); border: 1px solid var(--brand-accent-border); border-radius: var(--radius-sm); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge badge-brand" style="font-size: 10px;">DEMO REPOSITORY</span>
+            <span style="color: var(--text-secondary);">Sample Workspace for Evaluation • Pre-indexed AST & Forensic Telemetry</span>
+          </div>
+          <a href="#app/repositories" id="demo-banner-connect-link" style="color: var(--text-link); text-decoration: none; font-weight: 600; font-size: 11px;">Connect your own repo →</a>
+        </div>
+      ` : ''}
       <!-- 1. TOP HEADER (Section 4) -->
       <div style="background-color: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: var(--space-4);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
@@ -92,7 +130,7 @@ export function renderRepositoryOverview(state) {
 
           <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); line-height: 1.8;">
             <li><strong style="color: var(--text-primary);">Architecture structure:</strong> Tiered modular application with client-side UI, FastAPI ingress routing, and service isolation.</li>
-            <li><strong style="color: var(--text-primary);">Major modules:</strong> ${metrics.modulesCount || 18} distinct modules across authentication, attendance tracking, order billing, and workers.</li>
+            <li><strong style="color: var(--text-primary);">Major modules:</strong> ${metrics.modulesCount || 18} distinct modules across authentication, session event processing, order billing, and workers.</li>
             <li><strong style="color: var(--text-primary);">Dependencies:</strong> ${metrics.dependenciesCount || 34} external packages tracked across Python PyPI and npm ecosystems.</li>
             <li><strong style="color: var(--text-primary);">Potential code risks:</strong> ${findings.length} active findings (<span style="color: var(--color-high); font-weight: 600;">${highFindings.length} High</span>, <span style="color: var(--color-medium); font-weight: 600;">${medFindings.length} Medium</span>, <span style="color: var(--text-muted);">${lowFindings.length} Low</span>) including concurrency and truncation hazards.</li>
             <li><strong style="color: var(--text-primary);">Important code paths:</strong> Ingress routes traced through service coroutines to active MongoDB persistence, with dormant Supabase stubs.</li>
@@ -267,7 +305,7 @@ export function renderRepositoryOverview(state) {
                   Single-record query method <code style="font-size: 10px;">find_one()</code> truncates time-series records into a single object, hiding historical records.
                 </p>
                 <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">
-                  Source: services/attendance_service.py:112
+                  Source: services/session_service.py:112
                 </div>
               </div>
 
@@ -281,10 +319,10 @@ export function renderRepositoryOverview(state) {
                   <button class="btn btn-secondary btn-xs inspect-finding-btn" data-finding-id="FND-002" style="font-size: 10px;">Inspect</button>
                 </div>
                 <p style="font-size: 11px; color: var(--text-secondary); margin: 0 0 4px 0; line-height: 1.4;">
-                  Un-fenced <code style="font-size: 10px;">$push</code> array mutation without version locking allows simultaneous attendance submissions to overwrite each other.
+                  Un-fenced <code style="font-size: 10px;">$push</code> array mutation without version locking allows simultaneous event submissions to overwrite each other.
                 </p>
                 <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">
-                  Source: services/attendance_service.py:78
+                  Source: services/session_service.py:78
                 </div>
               </div>
 
@@ -341,7 +379,7 @@ export function renderRepositoryOverview(state) {
               <div style="padding: 8px 12px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <div style="font-weight: 600; font-size: 12px; color: var(--text-primary);">2. Core Modules</div>
-                  <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">FastAPI / Uvicorn • /api/attendance /auth /orders</div>
+                  <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">FastAPI / Uvicorn • /api/events /auth /orders</div>
                 </div>
                 <span class="badge badge-info" style="font-size: 10px;">Gateway :8000</span>
               </div>
@@ -352,7 +390,7 @@ export function renderRepositoryOverview(state) {
               <div style="padding: 8px 12px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
                 <div>
                   <div style="font-weight: 600; font-size: 12px; color: var(--text-primary);">3. Services</div>
-                  <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">attendance_service.py, auth_service.py, billing.py</div>
+                  <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">session_service.py, auth_service.py, billing.py</div>
                 </div>
                 <span class="badge badge-medium" style="font-size: 10px;">Core Services</span>
               </div>
@@ -404,7 +442,7 @@ export function renderRepositoryOverview(state) {
                     <div style="font-weight: 600; color: var(--text-primary);">Historical Data Truncation</div>
                     <div style="font-size: 10px; color: var(--text-muted);">Single-document cursor retrieval omits prior session logs</div>
                   </td>
-                  <td><code style="font-size: 11px;">services/attendance_service.py:112</code></td>
+                  <td><code style="font-size: 11px;">services/session_service.py:112</code></td>
                   <td><span class="badge badge-outline" style="font-size: 10px;">Data Integrity</span></td>
                   <td style="text-align: right;">
                     <button class="btn btn-secondary btn-xs inspect-finding-btn" data-finding-id="FND-001">Inspect</button>
@@ -417,7 +455,7 @@ export function renderRepositoryOverview(state) {
                     <div style="font-weight: 600; color: var(--text-primary);">Concurrency Race Hazard</div>
                     <div style="font-size: 10px; color: var(--text-muted);">Un-fenced $push update on array without optimistic lock</div>
                   </td>
-                  <td><code style="font-size: 11px;">services/attendance_service.py:78</code></td>
+                  <td><code style="font-size: 11px;">services/session_service.py:78</code></td>
                   <td><span class="badge badge-outline" style="font-size: 10px;">Concurrency</span></td>
                   <td style="text-align: right;">
                     <button class="btn btn-secondary btn-xs inspect-finding-btn" data-finding-id="FND-002">Inspect</button>
@@ -456,7 +494,7 @@ export function renderRepositoryOverview(state) {
                     <div style="font-weight: 600; color: var(--text-primary);">Deprecated Pydantic Syntax</div>
                     <div style="font-size: 10px; color: var(--text-muted);">Uses .dict() instead of model_dump() in response models</div>
                   </td>
-                  <td><code style="font-size: 11px;">models/student.py:15</code></td>
+                  <td><code style="font-size: 11px;">models/session.py:15</code></td>
                   <td><span class="badge badge-outline" style="font-size: 10px;">Quality</span></td>
                   <td style="text-align: right;">
                     <button class="btn btn-secondary btn-xs inspect-finding-btn" data-finding-id="FND-008">Inspect</button>
@@ -483,6 +521,21 @@ export function attachRepositoryOverviewEvents() {
   const viewAllFindings = document.getElementById("view-all-findings-btn");
   const nextStepCards = document.querySelectorAll(".next-step-card[data-route]");
   const inspectBtns = document.querySelectorAll(".inspect-finding-btn");
+
+  const emptyConnectBtn = document.getElementById("btn-empty-connect-repo");
+  const emptyDemoBtn = document.getElementById("btn-empty-try-demo");
+
+  if (emptyConnectBtn) {
+    emptyConnectBtn.addEventListener("click", () => {
+      store.setRoute("app/repository");
+    });
+  }
+
+  if (emptyDemoBtn) {
+    emptyDemoBtn.addEventListener("click", () => {
+      store.exploreDemo();
+    });
+  }
 
   if (cardFindings || viewAllFindings) {
     [cardFindings, viewAllFindings].forEach(el => {

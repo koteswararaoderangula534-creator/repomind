@@ -103,8 +103,8 @@ export function renderForensicPage(state) {
               Think of this as an X-ray for your data:
               <ul>
                 <li><strong>Configured vs Actually Used:</strong> Just because a setting has a <code>SUPABASE_URL</code> does not mean the code uses it. If all code calls MongoDB, MongoDB is the real database!</li>
-                <li><strong>Query Truncation:</strong> If a function uses <code>find_one()</code> to get attendance history, it only grabs 1 single card from the deck and hides the rest of the past days.</li>
-                <li><strong>Race Conditions:</strong> When two people tap "Mark Attendance" at the exact same millisecond, an unprotected array can accidentally save the same student twice.</li>
+                <li><strong>Query Truncation:</strong> If a function uses <code>find_one()</code> to get event audit history, it only grabs 1 single document from the collection and hides the rest of the historical events.</li>
+                <li><strong>Race Conditions:</strong> When two requests submit an event at the exact same millisecond, an unprotected array push can accidentally duplicate entries or overwrite records.</li>
               </ul>
             </div>
           </div>

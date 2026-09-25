@@ -25,7 +25,7 @@ export function renderTopbar(state) {
         <div class="brand-divider"></div>
 
         <div class="repo-breadcrumb">
-          <a href="#app" style="color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 4px;" title="View all repositories">
+          <a href="#app/repositories" style="color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 4px;" title="View all repositories">
             <span>Repositories</span>
           </a>
           <span style="color: var(--border-default);">/</span>

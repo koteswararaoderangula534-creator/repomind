@@ -73,7 +73,7 @@ export function renderHomePage(state) {
                   id="home-repo-input" 
                   class="input-text" 
                   placeholder="https://github.com/owner/repository" 
-                  value="https://github.com/university-sys/student-management-system"
+                  value="https://github.com/koteswararaoderangula534-creator/repomind"
                   style="width: 100%; height: 42px; font-size: 13px; font-family: var(--font-mono); padding: 0 14px; background-color: var(--bg-canvas); border: 1px solid var(--border-default); border-radius: var(--radius-sm);"
                 />
               </div>
@@ -99,9 +99,9 @@ export function renderHomePage(state) {
 
             <!-- Quick Demo Pills -->
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
-              <span style="font-size: 11px; color: var(--text-muted);">Quick demo:</span>
-              <button type="button" class="btn btn-ghost btn-xs home-sample-pill" data-url="https://github.com/university-sys/student-management-system" style="font-size: 11px; padding: 2px 8px; font-family: var(--font-mono); border: 1px solid var(--border-subtle);">
-                student-management-system (Demo Case)
+              <span style="font-size: 11px; color: var(--text-muted);">Sample repositories:</span>
+              <button type="button" class="btn btn-ghost btn-xs home-sample-pill" data-url="https://github.com/koteswararaoderangula534-creator/repomind" style="font-size: 11px; padding: 2px 8px; font-family: var(--font-mono); border: 1px solid var(--border-subtle);">
+                repomind (Sample)
               </button>
               <button type="button" class="btn btn-ghost btn-xs home-sample-pill" data-url="https://github.com/fastapi/fastapi" style="font-size: 11px; padding: 2px 8px; font-family: var(--font-mono); border: 1px solid var(--border-subtle);">
                 fastapi/fastapi
@@ -320,7 +320,7 @@ export function renderHomePage(state) {
             Ready to understand your codebase?
           </h2>
           <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
-            Analyze any repository immediately or explore our pre-indexed university demo.
+            Analyze any repository immediately or explore our pre-indexed engineering demo.
           </p>
 
           <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
@@ -398,7 +398,7 @@ export function attachHomePageEvents() {
       const url = pill.getAttribute("data-url");
       if (url && repoInput) {
         repoInput.value = url;
-        if (url.includes("student-management-system")) {
+        if (url.includes("repomind")) {
           store.exploreDemo();
         } else {
           store.connectRepository(url, "main");
