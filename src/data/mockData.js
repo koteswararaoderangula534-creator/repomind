@@ -305,7 +305,7 @@ export const CODE_HEALTH_FINDINGS = [
 export const ASK_AI_SAMPLE_QUERIES = [
   {
     id: "q-auth",
-    query: "How does authentication work?",
+    query: "Where does authentication happen?",
     category: "Architecture & Flow",
     technicalExplanation: "Authentication follows a stateless JWT bearer token pattern. The client submits credentials to login.py, which invokes auth_service.authenticate_user() to verify salted bcrypt password hashes. Once validated against the database user record, a cryptographically signed JWT access token (HS256) is returned with a 60-minute TTL.",
     juniorExplanation: "When a user logs in, the app takes their username and password, encrypts the password to check if it matches the database record, and hands back a digital pass (a JWT token). The user's browser sends this pass with every future request so the server knows who they are without asking for passwords again.",
@@ -357,6 +357,96 @@ export const ASK_AI_SAMPLE_QUERIES = [
     ],
     affectedEntities: ["UserSession", "TokenSchema", "OAuth2Bearer"],
     riskAssessment: "Low risk in standard flow; security vulnerability flagged in config.py line 27 regarding hardcoded JWT secret key."
+  },
+  {
+    id: "q-arch",
+    query: "Explain the repository architecture.",
+    category: "System Architecture",
+    technicalExplanation: "RepoMind AST parsing identified a tiered full-stack architecture organized into 4 functional layers: 1) Client UI (React/TypeScript single-page app and CameraCapture components); 2) API Gateway (FastAPI router with Uvicorn server exposing REST endpoints); 3) Core Business Services (Attendance, Auth, Orders, Grading, and Notification workers); 4) Data Persistence (Active MongoDB document store with dormant Supabase and relational PostgreSQL models).",
+    juniorExplanation: "This project is built like a 4-floor office building: The lobby (React frontend) takes requests from users, the security gate (FastAPI) checks who is allowed in, the office departments (Python services) do the real work, and the filing room (MongoDB) stores all the records.",
+    flowSteps: [
+      { name: "React Frontend", role: "Client UI", action: "User interaction & camera telemetry" },
+      { name: "FastAPI Ingress", role: "API Gateway", action: "Validates JSON payloads & handles CORS" },
+      { name: "Core Services", role: "Domain Logic", action: "Calculates grades, checks rules, runs jobs" },
+      { name: "MongoDB Storage", role: "Active Database", action: "Stores attendance and student documents" }
+    ],
+    sources: [
+      { file: "backend/app/main.py", lines: "1–35", func: "app", fullSnippet: `1: from fastapi import FastAPI
+2: app = FastAPI(title="RepoMind API")
+3: app.include_router(repositories.router, prefix="/api")` },
+      { file: "database.py", lines: "8–24", func: "get_db", fullSnippet: `8: engine = create_engine(DATABASE_URL, pool_size=20)
+9: SessionLocal = sessionmaker(bind=engine)` }
+    ],
+    affectedEntities: ["FastAPI Application", "Layer Boundaries", "Dependency Graph"],
+    riskAssessment: "Clean overall architectural separation; 1 direct database access leak detected in api/routes/enrollment.py:42."
+  },
+  {
+    id: "q-risks",
+    query: "What are the highest-risk areas?",
+    category: "Risk Detection",
+    technicalExplanation: "Static analysis and forensic AST inspection identified 2 CRITICAL and 2 HIGH risk areas: 1) services/attendance_service.py:112: Historical Data Truncation from using find_one() on multi-session records; 2) services/attendance_service.py:78: Concurrency Race Hazard from un-fenced $push array mutations; 3) config.py:27: Hardcoded JWT secret key; 4) orders.py:84: Monolithic 84-line function tightly coupling Stripe charges with database persistence.",
+    juniorExplanation: "The two biggest dangers in the project are: 1) A line of code that accidentally hides past attendance records because it only looks at the first page of results; 2) Two people marking attendance at the exact same moment causing one to overwrite the other because there's no waiting line!",
+    flowSteps: [
+      { name: "attendance_service.py:112", role: "Query Truncation", action: "find_one() omits prior records" },
+      { name: "attendance_service.py:78", role: "Race Condition", action: "$push executes without version lock" },
+      { name: "config.py:27", role: "Secret Leak", action: "Hardcoded cryptographic key in repo" },
+      { name: "orders.py:84", role: "Monolith", action: "Violates Single Responsibility Principle" }
+    ],
+    sources: [
+      { file: "services/attendance_service.py", lines: "112–115", func: "get_student_attendance_summary", fullSnippet: `112: record = await db.attendance.find_one({"student_id": student_id})
+113: return {"sessions": record.get("sessions", [])}` },
+      { file: "services/attendance_service.py", lines: "77–80", func: "record_attendance_session", fullSnippet: `77: result = await db.attendance.update_one(
+78:     {"student_id": student_id},
+79:     {"$push": {"sessions": session_data}}
+80: )` }
+    ],
+    affectedEntities: ["Data Integrity", "Concurrency Pipeline", "Application Secrets"],
+    riskAssessment: "HIGH PRIORITY: Fix query truncation and add version check (__v) to attendance array push."
+  },
+  {
+    id: "q-refactor",
+    query: "Which files should I refactor first?",
+    category: "Refactoring Opportunities",
+    technicalExplanation: "Priority 1 for refactoring is orders.py:84 (process_order). It currently violates the Single Responsibility Principle by orchestrating payload validation, Stripe API payment capture, database transaction commits, and customer email alerts within a single 84-line function. RepoMind provides an automated 4-helper decomposition plan (validate_order, charge_payment, save_order, send_confirmation) with 0 regression risk verified against 42 automated tests.",
+    juniorExplanation: "You should refactor orders.py first! That file has one giant function that tries to do everything: check the order, charge the credit card, save to the database, and send emails all in one place. Splitting it into 4 small helper functions makes it much easier to test and maintain.",
+    flowSteps: [
+      { name: "orders.py:84", role: "Current State", action: "Monolithic 84-line process_order() function" },
+      { name: "Refactor Proposal", role: "Decomposition", action: "Split into 4 single-purpose helper functions" },
+      { name: "Verification Matrix", role: "Safety Check", action: "All 42 test suites pass with 0 regressions" }
+    ],
+    sources: [
+      { file: "orders.py", lines: "84–168", func: "process_order", fullSnippet: `84: def process_order(order_data: dict, user_id: str, db_session) -> dict:
+85:     # 1. Validation (18 lines)
+86:     # 2. Stripe charge (24 lines)
+87:     # 3. DB commit (19 lines)
+88:     # 4. Email alerts (21 lines)` }
+    ],
+    affectedEntities: ["orders.py", "billing_service.py", "notification_worker.py"],
+    riskAssessment: "SAFE TO REFACTOR: Proposed refactoring plan is ready in Refactor Studio with verified diff."
+  },
+  {
+    id: "q-flow",
+    query: "How does data flow through this application?",
+    category: "Data Flow Lineage",
+    technicalExplanation: "Data flows through an end-to-end pipeline: 1) CameraCapture.tsx captures student attendance telemetry and dispatches a JSON POST payload; 2) FastAPI route handler at api/routes/attendance.py intercepts the request and performs schema validation; 3) The request delegates to services/attendance_service.py; 4) The service executes an asynchronous update to the active MongoDB attendance collection; 5) A response confirmation returns to the React dashboard.",
+    juniorExplanation: "Think of it like ordering pizza: The website (frontend) sends your order, the front desk (FastAPI route) checks that your address is real, the kitchen (attendance service) prepares the food, and the storage pantry (MongoDB) saves the receipt!",
+    flowSteps: [
+      { name: "CameraCapture.tsx", role: "Frontend UI", action: "Captures face token & dispatches POST" },
+      { name: "api/routes/attendance.py", role: "API Gateway", action: "Validates schema & headers" },
+      { name: "attendance_service.py", role: "Service Logic", action: "Prepares session document" },
+      { name: "MongoDB", role: "Persistence", action: "Writes document to attendance collection" }
+    ],
+    sources: [
+      { file: "src/components/CameraCapture.tsx", lines: "45–60", func: "submitAttendance", fullSnippet: `45: const submitAttendance = async (token: string) => {
+46:   await fetch('/api/attendance', { method: 'POST', body: JSON.stringify({ token }) });
+47: };` },
+      { file: "services/attendance_service.py", lines: "77–80", func: "record_attendance_session", fullSnippet: `77: result = await db.attendance.update_one(
+78:     {"student_id": student_id},
+79:     {"$push": {"sessions": session_data}}
+80: )` }
+    ],
+    affectedEntities: ["Frontend UI", "API Gateway", "MongoDB Database"],
+    riskAssessment: "Traced end-to-end; note that Supabase client configuration remains completely dormant in this pipeline."
   },
   {
     id: "q-order",

@@ -1,7 +1,11 @@
 /**
  * RepoMind Sidebar Component
- * Streamlined, developer-focused navigation for engineering workflows.
- * Supports clean workspace routing (Section 13).
+ * IDE-class engineering platform navigation matching Section 11:
+ * REPOSITORY -> Overview, Ask AI, Architecture
+ * ANALYSIS -> Forensic Analysis, Code Health, Impact Analysis
+ * IMPROVE -> Refactor Studio, Diff Viewer
+ * VERIFY -> Verification
+ * SYSTEM -> Settings, Help & Docs
  */
 
 import { Icons } from "./Icons.js";
@@ -13,34 +17,58 @@ export function renderSidebar(state) {
   const findingsCount = state.findings.length;
   const testsPassed = state.verificationData.passedCount;
 
-  // Normalized route matching
   const isMatch = (target) => {
     return currentRoute === target || currentRoute === target.replace("app/", "");
   };
 
-  const navItems = [
-    { id: "app/overview", label: "Overview", icon: Icons.Overview(15) },
-    { id: "app/repository", label: "Repository Ingress", icon: Icons.Repository(15) },
-    { id: "app/ask", label: "Ask RepoMind", icon: Icons.AskAI(15), badge: "AI", isAlert: false },
-    { id: "app/architecture", label: "Architecture Topology", icon: Icons.Architecture(15) },
-    { id: "app/forensic", label: "Advanced Forensics", icon: Icons.ForensicAnalysis(15), badge: "Deep", isAlert: false },
-    { id: "app/code-health", label: "Risks & Evidence", icon: Icons.CodeHealth(15), badge: findingsCount, isAlert: findingsCount > 0 },
-    { id: "app/impact", label: "Blast Radius", icon: Icons.ImpactAnalysis(15) },
-    { id: "app/refactor", label: "Refactor Studio", icon: Icons.Refactor(15) },
-    { id: "app/diff", label: "Diff Viewer", icon: Icons.DiffViewer(15) },
-    { id: "app/verification", label: "Verification Suites", icon: Icons.Verification(15), badge: `${testsPassed} passed`, isAlert: false }
+  const sections = [
+    {
+      title: "REPOSITORY",
+      items: [
+        { id: "app/overview", label: "Overview", icon: Icons.Overview(14) },
+        { id: "app/ask", label: "Ask AI", icon: Icons.AskAI(14), badge: "AI" },
+        { id: "app/architecture", label: "Architecture", icon: Icons.Architecture(14) },
+      ]
+    },
+    {
+      title: "ANALYSIS",
+      items: [
+        { id: "app/forensic", label: "Forensic Analysis", icon: Icons.ForensicAnalysis(14), badge: "Deep" },
+        { id: "app/code-health", label: "Code Health", icon: Icons.CodeHealth(14), badge: findingsCount, isAlert: findingsCount > 0 },
+        { id: "app/impact", label: "Impact Analysis", icon: Icons.ImpactAnalysis(14) },
+      ]
+    },
+    {
+      title: "IMPROVE",
+      items: [
+        { id: "app/refactor", label: "Refactor Studio", icon: Icons.Refactor(14) },
+        { id: "app/diff", label: "Diff Viewer", icon: Icons.DiffViewer(14) },
+      ]
+    },
+    {
+      title: "VERIFY",
+      items: [
+        { id: "app/verification", label: "Verification", icon: Icons.Verification(14), badge: `${testsPassed} passed` },
+      ]
+    },
+    {
+      title: "SYSTEM",
+      items: [
+        { id: "app/settings", label: "Settings", icon: Icons.Settings(14) },
+      ]
+    }
   ];
 
   return `
     <aside class="sidebar ${isCollapsed ? 'collapsed' : ''}" role="navigation" aria-label="Main Navigation">
       <div class="sidebar-nav">
-        <!-- Return to Workspace Home (All Repositories) -->
+        <!-- Switch Repository Context -->
         <a 
           href="#app" 
           class="nav-item ${currentRoute === 'app' ? 'active' : ''}" 
           data-route="app"
           title="All Repositories"
-          style="margin-bottom: 6px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;"
+          style="margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;"
         >
           <span class="nav-item-icon" style="color: var(--brand-accent-text);">
             ${Icons.Repository(14)}
@@ -48,41 +76,36 @@ export function renderSidebar(state) {
           <span class="nav-item-text" style="font-weight: 600;">All Repositories</span>
         </a>
 
-        <div class="sidebar-section-title">Workflow</div>
-        ${navItems.map(item => `
-          <a 
-            href="#${item.id}" 
-            class="nav-item ${isMatch(item.id) ? 'active' : ''}" 
-            data-route="${item.id}"
-            title="${item.label}"
-          >
-            <span class="nav-item-icon">${item.icon}</span>
-            <span class="nav-item-text">${item.label}</span>
-            ${item.badge !== undefined ? `
-              <span class="nav-item-badge ${item.isAlert ? 'alert' : ''}">${item.badge}</span>
-            ` : ""}
-          </a>
+        ${sections.map(sec => `
+          <div class="sidebar-section-title" style="margin-top: 10px; margin-bottom: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; color: var(--text-muted); text-transform: uppercase;">
+            ${sec.title}
+          </div>
+          ${sec.items.map(item => `
+            <a 
+              href="#${item.id}" 
+              class="nav-item ${isMatch(item.id) ? 'active' : ''}" 
+              data-route="${item.id}"
+              title="${item.label}"
+            >
+              <span class="nav-item-icon">${item.icon}</span>
+              <span class="nav-item-text">${item.label}</span>
+              ${item.badge !== undefined ? `
+                <span class="nav-item-badge ${item.isAlert ? 'alert' : ''}">${item.badge}</span>
+              ` : ""}
+            </a>
+          `).join("")}
         `).join("")}
       </div>
 
       <div class="sidebar-footer">
-        <a 
-          href="#app/settings" 
-          class="nav-item ${isMatch('app/settings') ? 'active' : ''}" 
-          data-route="app/settings"
-          title="Settings"
-        >
-          <span class="nav-item-icon">${Icons.Settings(15)}</span>
-          <span class="nav-item-text">Settings</span>
-        </a>
         <a 
           href="#help" 
           class="nav-item" 
           id="sidebar-help-link"
           title="Engineering Documentation & Guidelines"
         >
-          <span class="nav-item-icon">${Icons.Help(15)}</span>
-          <span class="nav-item-text">Help & Docs</span>
+          <span class="nav-item-icon">${Icons.Help(14)}</span>
+          <span class="nav-item-text">Docs & Workflow</span>
         </a>
       </div>
     </aside>
@@ -110,16 +133,19 @@ export function attachSidebarEvents() {
         "RepoMind Engineering Philosophy",
         "PHILOSOPHY.md",
         "1-30",
-        `# RepoMind: Engineering Intelligence Workflow
+        `# RepoMind: Autonomous Codebase Understanding & Safe Refactoring
 
-RepoMind turns unfamiliar codebases into structured engineering workflows:
-1. UNDERSTAND: AST parsing, architectural layering, and symbol extraction.
-2. DETECT: Security vulnerabilities, structural debt, and anti-patterns.
-3. IMPACT: Call graph dependency tracing to measure change blast radius.
+Core Promise:
+"Understand your codebase. Refactor it safely."
+
+Continuous Engineering Workflow:
+1. UNDERSTAND: AST parsing, architectural topology, and symbol dependencies.
+2. DETECT: Concurrency hazards, historical data truncation, security and quality smells.
+3. IMPACT: Caller-callee call graph tracing to evaluate blast radius before changes.
 4. REFACTOR: Evidence-backed decomposition adhering to SRP and clean design.
-5. DIFF: High-density unified and side-by-side verification review.
-6. VERIFY: Regression test suite execution before changes touch disk.
-7. HUMAN APPROVAL: Explicit developer approval with full audit trail.`
+5. DIFF: Unified and split diff review with explicit human approval.
+6. VERIFY: Automated test suites verify 0 regressions before committing.
+`
       );
     });
   }

@@ -23,14 +23,14 @@ export function renderAskAI(state) {
           <div style="display: flex; align-items: center; gap: 8px;">
             <h1 class="page-title">
               ${Icons.AskAI(18)}
-              <span>Investigation Assistant (Ask RepoMind)</span>
+              <span>AI Codebase Intelligence</span>
             </h1>
             <span class="badge badge-brand" style="font-size: 10px; font-weight: 600;">
-              AST Grounded
+              Context-Aware Reasoning
             </span>
           </div>
           <p class="page-subtitle">
-            Ask technical questions about data flow, database persistence, and concurrency risks. Grounded strictly in verified codebase tokens.
+            Ask RepoMind about this repository. Inspect architectural flows, risk proofs, and verified source citations.
           </p>
         </div>
 
@@ -63,21 +63,21 @@ export function renderAskAI(state) {
                 type="text" 
                 id="ask-ai-input" 
                 class="input-text" 
-                placeholder="Ask e.g. 'Why might data disappear?' or 'Where is data written?'"
+                placeholder="Ask RepoMind about this repository (e.g. 'Where does authentication happen?')"
                 value="${activeQuery ? activeQuery.query : ''}"
                 style="height: 40px; font-size: 13px;"
               />
             </div>
             <button class="btn btn-primary" id="btn-run-query" style="height: 40px; padding: 0 18px;">
               ${Icons.Search(13)}
-              <span>Investigate</span>
+              <span>Inspect Codebase</span>
             </button>
           </div>
 
           <!-- Suggested Engineering Questions -->
           <div style="margin-top: 12px;">
             <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500;">
-              Suggested Forensic Inquiries:
+              Suggested inquiries:
             </div>
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               ${queries.map(q => `

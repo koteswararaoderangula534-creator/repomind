@@ -478,23 +478,23 @@ export function renderForensicPage(state) {
                 </div>
 
                 <div style="font-size: var(--font-xs); color: var(--text-secondary); line-height: 1.5; margin-bottom: var(--space-2);">
-                  <strong>Evidence:</strong> ${fnd.evidence}
+                  <strong style="color: var(--text-primary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">EVIDENCE:</strong> ${fnd.evidence}
                 </div>
 
                 <div style="font-size: var(--font-xs); color: var(--text-muted); margin-bottom: var(--space-3);">
-                  <strong>Impact:</strong> ${fnd.impact}
+                  <strong style="color: var(--text-primary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">IMPACT:</strong> ${fnd.impact}
                 </div>
 
                 <!-- Concurrency Execution Timeline Diagram (if present) -->
                 ${fnd.concurrency_timeline ? `
                   <div style="background: var(--bg-canvas); border: 1px solid var(--border-default); border-radius: 4px; padding: var(--space-3); margin-bottom: var(--space-3);">
                     <div style="font-size: 11px; font-weight: 700; color: var(--color-warning); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-2);">
-                      ${Icons.AlertTriangle(13)} Concurrency Execution Timeline
+                      ${Icons.AlertTriangle(13)} WHY? (Concurrency Timeline & Collision Path)
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px; font-size: var(--font-xs); font-family: var(--font-mono);">
                       <div style="color: var(--text-muted);">Trigger: ${fnd.concurrency_timeline.trigger}</div>
-                      <div style="color: var(--brand-accent-text);">• ${fnd.concurrency_timeline.step1}</div>
-                      <div style="color: var(--brand-accent-text);">• ${fnd.concurrency_timeline.step2}</div>
+                      <div style="color: var(--brand-accent-text);">• Step 1: ${fnd.concurrency_timeline.step1}</div>
+                      <div style="color: var(--brand-accent-text);">• Step 2: ${fnd.concurrency_timeline.step2}</div>
                       <div style="color: var(--color-danger); font-weight: 600;">➔ Outcome: ${fnd.concurrency_timeline.outcome}</div>
                     </div>
                   </div>
@@ -502,20 +502,21 @@ export function renderForensicPage(state) {
 
                 ${fnd.code_snippet ? `
                   <div style="margin-bottom: var(--space-3);">
-                    <pre style="font-family: var(--font-mono); font-size: 11px; background: var(--bg-canvas); padding: var(--space-3); border-radius: 4px; border: 1px solid var(--border-subtle); overflow-x: auto; color: var(--text-secondary);"><code>${fnd.code_snippet}</code></pre>
+                    <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px;">WHERE? (AST Code Snippet)</div>
+                    <pre style="font-family: var(--font-mono); font-size: 11px; background: var(--bg-canvas); padding: var(--space-3); border-radius: 4px; border: 1px solid var(--border-subtle); overflow-x: auto; color: var(--text-secondary); margin: 0;"><code>${fnd.code_snippet}</code></pre>
                   </div>
                 ` : ""}
 
                 ${fnd.suggested_fix ? `
-                  <div style="background: rgba(35, 134, 54, 0.1); border: 1px solid rgba(35, 134, 54, 0.3); border-radius: 4px; padding: var(--space-2) var(--space-3); font-size: var(--font-xs); color: var(--color-success-light);">
-                    <strong>Minimum Safe Fix:</strong> ${fnd.suggested_fix}
+                  <div style="background: rgba(35, 134, 54, 0.1); border: 1px solid rgba(35, 134, 54, 0.3); border-radius: 4px; padding: var(--space-2) var(--space-3); font-size: var(--font-xs); color: var(--color-success-light); margin-bottom: var(--space-2);">
+                    <strong style="text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">WHAT SHOULD I DO? (Minimum Safe Fix):</strong> ${fnd.suggested_fix}
                   </div>
                 ` : ""}
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-3); font-size: 11px; color: var(--text-muted);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-2); font-size: 11px; color: var(--text-muted); padding-top: 8px; border-top: 1px solid var(--border-subtle);">
                   <span>Location: <code>${fnd.file}:${fnd.line}</code> in <code>${fnd.function}()</code></span>
-                  <button class="btn btn-ghost btn-xs btn-inspect-fnd" data-file="${fnd.file}" data-line="${fnd.line}" data-title="${fnd.title}" data-snippet="${encodeURIComponent(fnd.code_snippet || '')}">
-                    Inspect Source
+                  <button class="btn btn-secondary btn-xs btn-inspect-fnd" data-file="${fnd.file}" data-line="${fnd.line}" data-title="${fnd.title}" data-snippet="${encodeURIComponent(fnd.code_snippet || '')}">
+                    Inspect Source Context
                   </button>
                 </div>
               </div>

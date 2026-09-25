@@ -96,18 +96,27 @@ export function renderDiffViewerPage(state) {
         ${mode === "unified" ? renderUnifiedDiff(diff.unifiedDiff) : renderSplitDiff()}
       </div>
 
-      <!-- Action Footer -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-4);">
-        <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">
-          Git staged diff status: Ready for verification • Target branch: <code>main</code>
+      <!-- Action Footer (Section 16) -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-4); flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">
+          <span>Target branch: <code>main</code></span>
+          <span>•</span>
+          <span>File: <code>${diff.filePath}</code></span>
+          <span>•</span>
+          <span style="color: var(--color-success-light);">+42 lines</span>
+          <span>•</span>
+          <span style="color: var(--color-high);">-31 lines</span>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary btn-sm" id="btn-reject-diff">
-            <span>Reject Refactor</span>
+          <button class="btn btn-secondary btn-sm" id="btn-back-to-refactor">
+            <span>Back to Refactor</span>
           </button>
-          <button class="btn btn-primary btn-sm" id="btn-verify-now">
-            ${Icons.Verification(13)}
-            <span>Run 42 Verification Tests</span>
+          <button class="btn btn-danger btn-sm" id="btn-reject-diff">
+            <span>Reject</span>
+          </button>
+          <button class="btn btn-success btn-sm" id="btn-approve-verify">
+            ${Icons.Check(13)}
+            <span>Approve & Run Verification</span>
           </button>
         </div>
       </div>
@@ -229,11 +238,14 @@ export function attachDiffViewerEvents() {
     splitBtn.addEventListener("click", () => store.setState({ diffMode: "split" }));
   }
 
-  if (backRefactorBtn) {
-    backRefactorBtn.addEventListener("click", () => store.setRoute("app/refactor"));
-  }
+  const backBtn2 = document.getElementById("btn-back-to-refactor");
+  const approveVerifyBtn = document.getElementById("btn-approve-verify");
 
-  [proceedVerifyBtn, verifyNowBtn].forEach(btn => {
+  [backRefactorBtn, backBtn2].forEach(btn => {
+    btn?.addEventListener("click", () => store.setRoute("app/refactor"));
+  });
+
+  [proceedVerifyBtn, verifyNowBtn, approveVerifyBtn].forEach(btn => {
     btn?.addEventListener("click", () => store.setRoute("app/verification"));
   });
 

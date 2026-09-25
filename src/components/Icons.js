@@ -5,15 +5,39 @@
  */
 
 export const Icons = {
-  Logo: (size = 18) => `
-    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
-      <path d="M6 6h10"/>
-      <path d="M6 10h7"/>
-      <circle cx="15" cy="14" r="2"/>
-      <path d="M15 12v-2"/>
-      <path d="M17 14h2"/>
+  Logo: (size = 20) => `
+    <svg width="${size}" height="${size}" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="rm-logo-r-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00D2FF"/>
+          <stop offset="45%" stop-color="#1F6FEB"/>
+          <stop offset="100%" stop-color="#7928CA"/>
+        </linearGradient>
+        <linearGradient id="rm-pixel-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00F0FF"/>
+          <stop offset="100%" stop-color="#0099FF"/>
+        </linearGradient>
+      </defs>
+      <!-- Digital data blocks / pixels on the left -->
+      <rect x="2" y="14" width="3.5" height="3.5" rx="0.75" fill="url(#rm-pixel-grad)"/>
+      <rect x="6.5" y="9.5" width="4" height="4" rx="0.75" fill="url(#rm-pixel-grad)"/>
+      <rect x="6.5" y="15" width="4" height="4" rx="0.75" fill="url(#rm-pixel-grad)"/>
+      
+      <!-- Geometric 'R' main structure -->
+      <path d="M13 5H24.5C29.5 5 33.5 9 33.5 14C33.5 18.5 30 22.2 25.5 22.8L33.5 31H28L21 23.5H17V31H13V5Z" fill="url(#rm-logo-r-grad)"/>
+      
+      <!-- Loop cutout -->
+      <path d="M17 9H24C26.8 9 29 11.2 29 14C29 16.8 26.8 19 24 19H17V9Z" fill="#0D1117"/>
+      
+      <!-- Code brackets </> inside R loop -->
+      <path d="M19.5 12L17.8 14L19.5 16" stroke="#00D2FF" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M21.8 11.5L20.2 16.5" stroke="#388BFD" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M22.5 12L24.2 14L22.5 16" stroke="#00D2FF" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
+  `,
+
+  LogoImage: (size = 22) => `
+    <img src="assets/repomind-logo.png" alt="RepoMind" width="${size}" height="${size}" style="border-radius: 4px; object-fit: contain; display: inline-block; vertical-align: middle;" />
   `,
 
   Overview: (size = 16) => `

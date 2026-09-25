@@ -34,6 +34,29 @@ export function renderRefactorPage(state) {
         </div>
       </div>
 
+      <!-- Safe Refactoring Governance Pipeline (Section 14) -->
+      <div style="margin-bottom: var(--space-4); background-color: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 10px 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted);">
+            <span>Safe Refactoring Pipeline:</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; font-family: var(--font-mono);">
+            <span style="color: var(--color-success-light); font-weight: 600;">✓ 01 ANALYZE</span>
+            <span style="color: var(--text-muted);">→</span>
+            <span style="color: var(--color-success-light); font-weight: 600;">✓ 02 PROPOSE</span>
+            <span style="color: var(--text-muted);">→</span>
+            <span style="color: var(--brand-accent-text); font-weight: 700; padding: 2px 6px; background: var(--brand-accent-subtle); border-radius: var(--radius-sm); border: 1px solid var(--brand-accent-border);">03 REVIEW (Current)</span>
+            <span style="color: var(--text-muted);">→</span>
+            <span style="color: var(--text-muted);">04 TEST</span>
+            <span style="color: var(--text-muted);">→</span>
+            <span style="color: var(--text-muted);">05 APPROVE</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted);">
+            <span>Human In Control</span>
+          </div>
+        </div>
+      </div>
+
       ${isJunior ? `
         <div class="junior-callout">
           <div class="junior-callout-icon">${Icons.Info(15)}</div>
