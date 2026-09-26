@@ -25,6 +25,7 @@ from app.api import (
     refactor,
     verification,
     forensic,
+    llm,
 )
 from app.services.architecture_service import architecture_service
 from app.services.refactor_service import refactor_service
@@ -684,3 +685,4 @@ app.include_router(ask.router, prefix=settings.API_PREFIX)
 app.include_router(refactor.router, prefix=settings.API_PREFIX)
 app.include_router(verification.router, prefix=settings.API_PREFIX)
 app.include_router(forensic.router, prefix=settings.API_PREFIX)
+app.include_router(llm.router, prefix=settings.API_PREFIX)

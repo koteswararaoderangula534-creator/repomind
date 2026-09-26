@@ -143,6 +143,8 @@ class Store {
       // Ask AI
       askAiHistory: [...ASK_AI_SAMPLE_QUERIES],
       activeQueryId: "q-auth",
+      reasoningMode: "understand",
+      llmStatus: null,
 
       // Architecture
       archData: ARCHITECTURE_GRAPH_DATA,

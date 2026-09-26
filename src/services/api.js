@@ -117,12 +117,12 @@ class ApiService {
     return IMPACT_ANALYSIS_DATA;
   }
 
-  async askQuery(repoId = "repo-student-mgmt", query = "How does authentication work?") {
+  async askQuery(repoId = "repo-student-mgmt", query = "How does authentication work?", mode = "understand", audience = "senior") {
     try {
       const res = await fetch(`${this.baseUrl}/repositories/${repoId}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query, mode, audience })
       });
       const data = await res.json();
       if (data.success && data.data) return data.data;
@@ -130,6 +130,49 @@ class ApiService {
       // Fallback
     }
     return ASK_AI_SAMPLE_QUERIES[0];
+  }
+
+  async fetchLLMStatus(provider = null) {
+    try {
+      const url = new URL(`${this.baseUrl}/llm/status`);
+      if (provider) url.searchParams.set("provider", provider);
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      if (data.success && data.data) return data.data;
+    } catch {
+      // Fallback
+    }
+    return {
+      status: "offline_fallback",
+      provider: "deterministic",
+      model: "ast-rule-engine",
+      configured: false,
+      available: false,
+      message: "Operating in 100% Deterministic Intelligence Mode"
+    };
+  }
+
+  async askGroundedLLM(repoId = "repo-student-mgmt", question = "", mode = "understand", audience = "senior", targetSymbol = null, targetFile = null) {
+    try {
+      const res = await fetch(`${this.baseUrl}/llm/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repository_id: repoId,
+          question,
+          mode,
+          audience,
+          target_symbol: targetSymbol,
+          target_file: targetFile
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.data) return data.data;
+    } catch {
+      // Fallback to askQuery
+      return this.askQuery(repoId, question, mode, audience);
+    }
+    return null;
   }
 
   async generateRefactor(repoId = "repo-student-mgmt", targetFunction = "process_order()", file = "orders.py") {
